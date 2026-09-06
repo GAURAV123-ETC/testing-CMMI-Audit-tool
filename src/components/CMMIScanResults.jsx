@@ -29,6 +29,8 @@ const STATUS_STYLE = {
   FOUND: { cls: 'badge-success' },
   PARTIAL: { cls: 'badge-warning' },
   MISSING: { cls: 'badge-danger' },
+  BLOCKED: { cls: 'badge-danger', style: { background: '#FDE68A', color: '#92400E' } },
+  NOT_APPLICABLE: { cls: 'badge', style: { color: '#475569', background: '#E2E8F0' } },
   UNKNOWN: { cls: 'badge', style: { color: '#6b3fa0', background: 'rgba(107,63,160,0.12)' } },
   ERROR: { cls: 'badge', style: { color: '#6b21a8', background: '#EDE9FE', fontWeight: 700 } },
 }
@@ -85,14 +87,14 @@ function Td({ children, style }) {
 
 function ClassificationTab({ rows, hasScanned }) {
   const [expanded, setExpanded] = useState(null)
-  if (!hasScanned) return <EmptyState>Upload a folder and click Run CMMI Audit Scan to see document classification results.</EmptyState>
+  if (!hasScanned) return <EmptyState>Import the master workbook, select project evidence, and run the evidence scan to see document classification results.</EmptyState>
   if (rows.length === 0) return <EmptyState>No files scanned.</EmptyState>
   return (
     <div className="card" style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr>
-            {['File Name', 'Detected Type', 'Confidence', 'Practice Areas', 'Found', 'Partial', 'Missing', 'Gap Count', ''].map(h => <Th key={h}>{h}</Th>)}
+            {['File Name', 'Detected Type', 'Document Role', 'Confidence', 'Practice Areas', 'Found', 'Partial', 'Missing', 'Gap Count', ''].map(h => <Th key={h}>{h}</Th>)}
           </tr>
         </thead>
         <tbody>
@@ -104,6 +106,7 @@ function ClassificationTab({ rows, hasScanned }) {
                 <tr style={{ background: gapCountRowBg(r.gapCount, r.status), borderBottom: isExpanded ? 'none' : '0.5px solid var(--color-border-tertiary)' }}>
                   <Td style={{ fontWeight: 500, color: 'var(--color-text-primary)' }} title={isError ? r.errorReason : (r.classificationReason || '')}>{r.originalFileName}</Td>
                   <Td>{isError ? <><ErrorBadge /> {r.detectedType && r.detectedType !== 'ERROR' ? <span style={{ marginLeft: 4 }}>{r.detectedType}</span> : null}</> : r.detectedType}</Td>
+                  <Td>{isError ? '-' : (r.documentRole || '-')}</Td>
                   <Td>{isError ? r.confidence || '-' : <ConfidenceBadge confidence={r.confidence} />}</Td>
                   <Td>{isError ? '-' : ((r.practiceAreas || []).join(', ') || '-')}</Td>
                   <Td>{isError ? '-' : r.foundCount}</Td>
@@ -123,7 +126,7 @@ function ClassificationTab({ rows, hasScanned }) {
                 </tr>
                 {isExpanded && (
                   <tr style={{ background: gapCountRowBg(r.gapCount, r.status), borderBottom: '0.5px solid var(--color-border-tertiary)' }}>
-                    <Td style={{ color: isError ? '#B91C1C' : 'var(--color-text-secondary)' }} colSpan={9}>
+                    <Td style={{ color: isError ? '#B91C1C' : 'var(--color-text-secondary)' }} colSpan={10}>
                       {isError ? `Error Reason: ${r.errorReason}` : (r.classificationReason || 'No classification reasoning available.')}
                     </Td>
                   </tr>
@@ -334,6 +337,7 @@ function buildClassificationSheet(workbook, classificationReport) {
   const columns = [
     { header: 'Original File Name', key: 'file', width: 10 },
     { header: 'Detected Document Type', key: 'type', width: 10 },
+    { header: 'Document Role', key: 'role', width: 10 },
     { header: 'Confidence', key: 'confidence', width: 10 },
     { header: 'Classification Reason', key: 'reason', width: 10 },
     { header: 'Practice Areas', key: 'pa', width: 10 },
@@ -351,6 +355,7 @@ function buildClassificationSheet(workbook, classificationReport) {
     sheet.addRow({
       file: r.originalFileName,
       type: r.detectedType,
+      role: r.documentRole || '',
       confidence: r.confidence,
       reason: r.classificationReason || '',
       pa: (r.practiceAreas || []).join(', '),

@@ -86,11 +86,22 @@ async function extractFromXlsx(file) {
   try {
     const buf = await file.arrayBuffer()
     const wb = XLSX.read(buf, { type: 'array', cellDates: true })
+    const headers = []
+    let populatedRows = 0
     const parts = wb.SheetNames.map(sheetName => {
       const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, blankrows: false, defval: '' })
+      const nonEmptyRows = rows.filter(row => row.some(cell => String(cell || '').trim()))
+      // The first populated row is the strongest portable header signal for
+      // heterogeneous customer spreadsheets. It is retained separately from
+      // the text so classification can give schema evidence its own weight.
+      if (nonEmptyRows[0]) headers.push(...nonEmptyRows[0].map(cell => String(cell || '')).filter(Boolean))
+      populatedRows += Math.max(0, nonEmptyRows.length - (nonEmptyRows.length ? 1 : 0))
       return rows.map(row => row.join(' ')).join('\n')
     })
-    return { text: parts.join('\n'), method: 'text-layer', ocrUsed: false, status: 'OK' }
+    return {
+      text: parts.join('\n'), method: 'text-layer', ocrUsed: false, status: 'OK',
+      structure: { isSpreadsheet: true, sheetNames: wb.SheetNames, headers, populatedRows },
+    }
   } catch (e) {
     return errorResult('File appears to be corrupted', e)
   }
@@ -105,7 +116,7 @@ async function extractFromDocx(file) {
     const mammoth = await import('mammoth')
     const arrayBuffer = await file.arrayBuffer()
     const result = await mammoth.extractRawText({ arrayBuffer })
-    return { text: result.value || '', method: 'text-layer', ocrUsed: false, status: 'OK' }
+    return { text: result.value || '', method: 'text-layer', ocrUsed: false, status: 'OK', structure: { isSpreadsheet: false } }
   } catch (e) {
     return errorResult('File appears to be corrupted', e)
   }
@@ -175,7 +186,7 @@ async function extractFromPptx(file) {
       slideTexts.push(runs.join(' '))
     }
 
-    return { text: slideTexts.join('\n'), method: 'text-layer', ocrUsed: false, status: 'OK' }
+    return { text: slideTexts.join('\n'), method: 'text-layer', ocrUsed: false, status: 'OK', structure: { isSpreadsheet: false } }
   } catch (e) {
     return errorResult('File appears to be corrupted', e)
   }
@@ -216,7 +227,7 @@ async function extractFromPdf(file) {
     // A real text layer exists (equivalent to a non-empty `pdffonts`
     // result) — trust it, text-based PDF path.
     if (avgCharsPerPage >= SCANNED_PDF_AVG_CHARS_PER_PAGE) {
-      return { text: textLayer, method: 'text-layer', ocrUsed: false, status: 'OK' }
+      return { text: textLayer, method: 'text-layer', ocrUsed: false, status: 'OK', structure: { isSpreadsheet: false, pageCount: pdf.numPages } }
     }
 
     // Sparse/empty text layer — treat as a scanned/image-only PDF and OCR
@@ -231,7 +242,7 @@ async function extractFromPdf(file) {
     const ocrText = ocrTexts.join('\n')
     if (!ocrText.trim()) return errorResult('OCR failed — no readable text found')
 
-    return { text: ocrText, method: 'ocr', ocrUsed: true, status: 'OK' }
+    return { text: ocrText, method: 'ocr', ocrUsed: true, status: 'OK', structure: { isSpreadsheet: false, pageCount: pdf.numPages } }
   } catch (e) {
     return errorResult('File appears to be corrupted', e)
   }
@@ -241,7 +252,7 @@ async function extractFromImage(file) {
   try {
     const text = await ocrImageSource(file)
     if (!text.trim()) return errorResult('OCR failed — no readable text found')
-    return { text, method: 'ocr', ocrUsed: true, status: 'OK' }
+    return { text, method: 'ocr', ocrUsed: true, status: 'OK', structure: { isSpreadsheet: false } }
   } catch (e) {
     return errorResult('OCR failed — no readable text found', e)
   }

@@ -1,0 +1,3022 @@
+[
+  {
+    "rule_id": "RDM-G1",
+    "practice_area": "RDM",
+    "level": "L1-Gate",
+    "is_gate": true,
+    "is_check": false,
+    "is_probe": false,
+    "audit_check": "Locate the Requirements document (BRD / SRS / Product Backlog / User Stories). Does it exist in the project repository and is it under version control?",
+    "gap_text": "Gap: No requirements artefact found. Raise finding. Stop RDM checks until document is produced."
+  },
+  {
+    "rule_id": "RDM-1",
+    "practice_area": "RDM",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Does the document define the project scope, objectives and boundaries?",
+    "gap_text": "Gap: Scope not defined. Requirements may be misunderstood across the team."
+  },
+  {
+    "rule_id": "RDM-1a",
+    "practice_area": "RDM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is there a clearly stated In-Scope and Out-of-Scope section?",
+    "gap_text": "Observation: Add explicit scope boundaries to prevent scope creep."
+  },
+  {
+    "rule_id": "RDM-1b",
+    "practice_area": "RDM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are all business objectives the solution must satisfy listed and linked to requirements?",
+    "gap_text": "Gap: Business objectives not linked. Requirements may not satisfy business needs."
+  },
+  {
+    "rule_id": "RDM-2",
+    "practice_area": "RDM",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Are all functional requirements (what the system must do) documented?",
+    "gap_text": "Gap: Functional requirements are missing or incomplete."
+  },
+  {
+    "rule_id": "RDM-2a",
+    "practice_area": "RDM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is each functional requirement uniquely identified with a reference ID?",
+    "gap_text": "Observation: Add unique IDs to enable traceability."
+  },
+  {
+    "rule_id": "RDM-2b",
+    "practice_area": "RDM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is each requirement written in testable, unambiguous language? (Words like 'should', 'may', 'fast' are not acceptable.)",
+    "gap_text": "Gap: Vague requirements will lead to incorrect implementation and untestable output."
+  },
+  {
+    "rule_id": "RDM-2c",
+    "practice_area": "RDM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are all user roles and actors covered by the functional requirements?",
+    "gap_text": "Observation: Check if any user role or actor is unaddressed."
+  },
+  {
+    "rule_id": "RDM-2d",
+    "practice_area": "RDM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are business rules, workflows and exception or error flows documented?",
+    "gap_text": "Gap: Missing business rules and error flows will cause defects in edge cases."
+  },
+  {
+    "rule_id": "RDM-2e",
+    "practice_area": "RDM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "For agile projects: are user stories written in the format 'As a [role], I want [action], so that [benefit]' with acceptance criteria?",
+    "gap_text": "Observation: User stories without a standard format lack clarity on intent and acceptance."
+  },
+  {
+    "rule_id": "RDM-3",
+    "practice_area": "RDM",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Are non-functional requirements documented across all applicable categories?",
+    "gap_text": "Gap: Missing NFRs cause technical debt, performance failures and compliance risk."
+  },
+  {
+    "rule_id": "RDM-3a",
+    "practice_area": "RDM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Performance: Are response time, throughput and concurrent user load targets specified with measurable numeric thresholds?",
+    "gap_text": "Gap: 'Fast' or 'responsive' is not a requirement. Specify in milliseconds, requests per second or number of users."
+  },
+  {
+    "rule_id": "RDM-3b",
+    "practice_area": "RDM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Security: Are authentication, authorisation, encryption, audit logging and data protection requirements stated?",
+    "gap_text": "Gap: Absent security NFRs create unmitigated risk in the solution."
+  },
+  {
+    "rule_id": "RDM-3c",
+    "practice_area": "RDM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Availability and Reliability: Are uptime SLA percentage, MTTR, MTBF, RPO and RTO specified?",
+    "gap_text": "Gap: Without availability targets the solution has no basis for SLA commitments."
+  },
+  {
+    "rule_id": "RDM-3d",
+    "practice_area": "RDM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Scalability: Are growth projections and scaling approach documented?",
+    "gap_text": "Observation: Add scalability targets and horizontal or vertical scaling approach."
+  },
+  {
+    "rule_id": "RDM-3e",
+    "practice_area": "RDM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Usability: Are UI standards, accessibility guidelines and user experience requirements referenced?",
+    "gap_text": "Observation: Add usability and accessibility criteria to prevent post-launch rework."
+  },
+  {
+    "rule_id": "RDM-3f",
+    "practice_area": "RDM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Maintainability and Supportability: Are coding standards, logging, monitoring and support requirements stated?",
+    "gap_text": "Observation: Add operational requirements so the team can maintain the solution post-go-live."
+  },
+  {
+    "rule_id": "RDM-3g",
+    "practice_area": "RDM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Compliance and Regulatory: Are applicable laws, standards (GDPR, DPDP, HIPAA, ISO) and audit requirements captured?",
+    "gap_text": "Gap: Regulatory non-compliance is a critical gap that may prevent deployment."
+  },
+  {
+    "rule_id": "RDM-3h",
+    "practice_area": "RDM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Interface and Integration: Are all external system connections, API contracts and data formats specified?",
+    "gap_text": "Gap: Missing interface requirements cause integration failures at a late stage."
+  },
+  {
+    "rule_id": "RDM-4",
+    "practice_area": "RDM",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Are requirements written so that a developer can implement them without needing to make assumptions?",
+    "gap_text": "Gap: Ambiguous requirements lead to incorrect implementation and rework."
+  },
+  {
+    "rule_id": "RDM-4a",
+    "practice_area": "RDM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is each requirement atomic? (One requirement per statement, not bundled into compound sentences.)",
+    "gap_text": "Observation: Split compound requirements into individual statements."
+  },
+  {
+    "rule_id": "RDM-4b",
+    "practice_area": "RDM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are acceptance criteria or definition-of-done defined for every requirement or user story?",
+    "gap_text": "Gap: Without acceptance criteria there is no agreed basis to verify completion."
+  },
+  {
+    "rule_id": "RDM-4c",
+    "practice_area": "RDM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are data elements, field lengths, formats and validation rules specified where relevant?",
+    "gap_text": "Gap: Developers will make assumptions on data specifications, leading to defects."
+  },
+  {
+    "rule_id": "RDM-5",
+    "practice_area": "RDM",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Is there formal evidence that the requirements were reviewed and approved by the business stakeholder?",
+    "gap_text": "Gap: Unsigned requirements are not baselined. Changes are uncontrolled."
+  },
+  {
+    "rule_id": "RDM-5a",
+    "practice_area": "RDM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is the sign-off from an authorised business representative (not only the IT team)?",
+    "gap_text": "Gap: IT-only sign-off does not constitute business acceptance."
+  },
+  {
+    "rule_id": "RDM-5b",
+    "practice_area": "RDM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are operational concepts or scenarios documented that describe how the solution will be used in the target environment?",
+    "gap_text": "Observation: Operational scenarios validate that requirements match real-world usage."
+  },
+  {
+    "rule_id": "RDM-6",
+    "practice_area": "RDM",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Is a Requirements Traceability Matrix (RTM) available linking requirements to design, test cases, defects and release?",
+    "gap_text": "Gap: Without traceability, coverage gaps and impact of changes cannot be determined."
+  },
+  {
+    "rule_id": "RDM-6a",
+    "practice_area": "RDM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Does every requirement have at least one corresponding test case in the RTM?",
+    "gap_text": "Gap: Untested requirements mean unknown quality."
+  },
+  {
+    "rule_id": "RDM-6b",
+    "practice_area": "RDM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are change requests linked to the affected requirements in the RTM?",
+    "gap_text": "Gap: Change impact cannot be assessed without requirement-level linkage."
+  },
+  {
+    "rule_id": "RDM-6c",
+    "practice_area": "RDM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is the RTM updated after each sprint, release or approved change?",
+    "gap_text": "Observation: A stale RTM loses its value as a quality and coverage tool."
+  },
+  {
+    "rule_id": "RDM-7",
+    "practice_area": "RDM",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Is a Change Request (CR) log or change management record available for requirement changes?",
+    "gap_text": "Gap: Uncontrolled requirement changes indicate absence of a change management process."
+  },
+  {
+    "rule_id": "RDM-7a",
+    "practice_area": "RDM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Does each CR record contain: originator, date, description, impact assessment and approval status?",
+    "gap_text": "Gap: Incomplete CR records cannot be audited or rolled back."
+  },
+  {
+    "rule_id": "RDM-7b",
+    "practice_area": "RDM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Were all plans, designs and test cases updated to reflect approved changes?",
+    "gap_text": "Gap: Approved changes not propagated create inconsistency across artefacts."
+  },
+  {
+    "rule_id": "TS-G1",
+    "practice_area": "TS",
+    "level": "L1-Gate",
+    "is_gate": true,
+    "is_check": false,
+    "is_probe": false,
+    "audit_check": "Locate the System or Technical Design Document (SDD, TDD, Architecture Document or equivalent). Does it exist and is it version-controlled?",
+    "gap_text": "Gap: No design artefact found. Architecture decisions are undocumented."
+  },
+  {
+    "rule_id": "TS-1",
+    "practice_area": "TS",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Does every functional and non-functional requirement from the SRS map to at least one design element?",
+    "gap_text": "Gap: Unaddressed requirements will not be built into the solution."
+  },
+  {
+    "rule_id": "TS-1a",
+    "practice_area": "TS",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is each design component traceable back to at least one requirement?",
+    "gap_text": "Gap: Design components without requirement linkage may be gold-plating or covering missed requirements."
+  },
+  {
+    "rule_id": "TS-1b",
+    "practice_area": "TS",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are security and performance NFRs explicitly addressed in the design with specific mechanisms?",
+    "gap_text": "Gap: NFR gaps surface late and are costly to retrofit."
+  },
+  {
+    "rule_id": "TS-2",
+    "practice_area": "TS",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Does the design cover: component breakdown, data flows, interface definitions, error handling and deployment view?",
+    "gap_text": "Gap: Incomplete design leads to ad hoc decisions during coding."
+  },
+  {
+    "rule_id": "TS-2a",
+    "practice_area": "TS",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is a data model or ER diagram included and consistent with data requirements?",
+    "gap_text": "Gap: Missing data model causes database schema mismatches and data integrity issues."
+  },
+  {
+    "rule_id": "TS-2b",
+    "practice_area": "TS",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are all external integrations and APIs documented with request and response formats, authentication method and error codes?",
+    "gap_text": "Gap: Undocumented API contracts cause integration failures at a late stage."
+  },
+  {
+    "rule_id": "TS-2c",
+    "practice_area": "TS",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is a deployment or infrastructure view documented (hosting, environments, network zones, scaling)?",
+    "gap_text": "Observation: Add deployment diagram to clarify environment architecture."
+  },
+  {
+    "rule_id": "TS-3",
+    "practice_area": "TS",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Is there evidence that the design was peer-reviewed (review minutes, annotated documents or tool comments)?",
+    "gap_text": "Gap: Unreviewed design increases defect leakage into development."
+  },
+  {
+    "rule_id": "TS-3a",
+    "practice_area": "TS",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Were review comments formally logged and all issues resolved before coding commenced?",
+    "gap_text": "Gap: Unresolved design review comments indicate incomplete review closure."
+  },
+  {
+    "rule_id": "TS-3b",
+    "practice_area": "TS",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Was the design approved by the tech lead or architect before development started?",
+    "gap_text": "Gap: Coding commenced without an approved design baseline."
+  },
+  {
+    "rule_id": "TS-4",
+    "practice_area": "TS",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Are coding standards defined and evidenced as being followed (code review records, static analysis reports)?",
+    "gap_text": "Gap: No coding standards or no evidence of compliance causes inconsistent and defect-prone code."
+  },
+  {
+    "rule_id": "TS-4a",
+    "practice_area": "TS",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are static analysis or linting tools configured and their results available?",
+    "gap_text": "Observation: Static analysis results are not available. Manual reviews alone are insufficient."
+  },
+  {
+    "rule_id": "TS-4b",
+    "practice_area": "TS",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is technical debt identified, logged and managed (backlog or technical debt register)?",
+    "gap_text": "Observation: Unlogged technical debt accumulates silently and affects future maintainability."
+  },
+  {
+    "rule_id": "TS-5",
+    "practice_area": "TS",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Does the design explicitly address security controls: authentication, authorisation, input validation, encryption and audit logging?",
+    "gap_text": "Gap: Security absent from design means vulnerabilities are built into the solution."
+  },
+  {
+    "rule_id": "TS-5a",
+    "practice_area": "TS",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are secure coding guidelines referenced in the design for developers to follow?",
+    "gap_text": "Gap: Developers lack guidance on secure implementation."
+  },
+  {
+    "rule_id": "TS-5b",
+    "practice_area": "TS",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is a build-buy-reuse decision documented with rationale for each major component?",
+    "gap_text": "Observation: Undocumented build-buy-reuse decisions may be revisited and cause unnecessary rework."
+  },
+  {
+    "rule_id": "EST-G1",
+    "practice_area": "EST",
+    "level": "L1-Gate",
+    "is_gate": true,
+    "is_check": false,
+    "is_probe": false,
+    "audit_check": "Locate the Estimation document or sheet (effort, size, cost, duration). Does it exist?",
+    "gap_text": "Gap: No estimation artefact. Commitments have been made without a documented basis."
+  },
+  {
+    "rule_id": "EST-1",
+    "practice_area": "EST",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Is the estimation method clearly stated (story points, function points, analogy, expert judgement, COCOMO or other)?",
+    "gap_text": "Gap: Estimation method is not stated. The estimate cannot be validated, repeated or defended."
+  },
+  {
+    "rule_id": "EST-1a",
+    "practice_area": "EST",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is historical data or velocity from past projects used to calibrate the estimate?",
+    "gap_text": "Gap: Estimates not calibrated against historical data are based on guesswork."
+  },
+  {
+    "rule_id": "EST-1b",
+    "practice_area": "EST",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are assumptions and constraints documented alongside the estimate?",
+    "gap_text": "Gap: Hidden assumptions invalidate the estimate when those assumptions change."
+  },
+  {
+    "rule_id": "EST-2",
+    "practice_area": "EST",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Does the estimate cover ALL work: development, testing, reviews, deployment, documentation and project management?",
+    "gap_text": "Gap: Partial estimates lead to budget and schedule overruns."
+  },
+  {
+    "rule_id": "EST-2a",
+    "practice_area": "EST",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are non-coding activities included: code review, QA, UAT support, change management, release activities?",
+    "gap_text": "Gap: Underestimation of non-coding effort is one of the most common causes of schedule overrun."
+  },
+  {
+    "rule_id": "EST-2b",
+    "practice_area": "EST",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are rework buffers and risk contingency included?",
+    "gap_text": "Observation: No contingency buffer makes the estimate fragile under uncertainty."
+  },
+  {
+    "rule_id": "EST-2c",
+    "practice_area": "EST",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are estimate uncertainty ranges documented (best case, most likely, worst case)?",
+    "gap_text": "Observation: Single-point estimates mask the true uncertainty of the work."
+  },
+  {
+    "rule_id": "EST-3",
+    "practice_area": "EST",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Are size (story points or FP), effort (person-days), duration (calendar days) and cost documented separately?",
+    "gap_text": "Gap: Missing estimate components make the estimate incomplete and unusable for planning."
+  },
+  {
+    "rule_id": "EST-4",
+    "practice_area": "EST",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Was the estimate reviewed and approved by both the project manager and the business stakeholder?",
+    "gap_text": "Gap: Unapproved estimates are not valid commitments."
+  },
+  {
+    "rule_id": "EST-4a",
+    "practice_area": "EST",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is there documentary evidence of the approval (email, signed form or meeting minutes)?",
+    "gap_text": "Gap: No evidence of commitment. Verbal approvals are not auditable."
+  },
+  {
+    "rule_id": "EST-5",
+    "practice_area": "EST",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Are actual effort, cost and duration tracked against the estimate at regular intervals?",
+    "gap_text": "Gap: Variance is invisible without tracking. Corrective action cannot be taken."
+  },
+  {
+    "rule_id": "EST-5a",
+    "practice_area": "EST",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are significant variances (greater than 10 percent) formally investigated and the estimate revised?",
+    "gap_text": "Gap: The plan becomes invalid without re-baselining after significant variance."
+  },
+  {
+    "rule_id": "EST-5b",
+    "practice_area": "EST",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are estimation lessons learned captured and stored for use in future project estimates?",
+    "gap_text": "Observation: Not capturing estimation lessons means the same errors recur on future projects."
+  },
+  {
+    "rule_id": "PLAN-G1",
+    "practice_area": "PLAN",
+    "level": "L1-Gate",
+    "is_gate": true,
+    "is_check": false,
+    "is_probe": false,
+    "audit_check": "Locate the Project Plan (or Sprint Plan plus Release Plan). Does it exist and is it version-controlled?",
+    "gap_text": "Gap: No project plan found. The project is being managed without a formal plan."
+  },
+  {
+    "rule_id": "PLAN-1",
+    "practice_area": "PLAN",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Does the plan address: scope, schedule, budget, resources, risks, dependencies, quality activities and communication?",
+    "gap_text": "Gap: Incomplete plan leaves the project exposed to unmanaged variables."
+  },
+  {
+    "rule_id": "PLAN-1a",
+    "practice_area": "PLAN",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is there a milestone schedule with dates and named owners?",
+    "gap_text": "Gap: No schedule means progress cannot be measured against a baseline."
+  },
+  {
+    "rule_id": "PLAN-1b",
+    "practice_area": "PLAN",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are resource assignments (who does what and when) documented?",
+    "gap_text": "Gap: Unassigned work items will not be delivered."
+  },
+  {
+    "rule_id": "PLAN-1c",
+    "practice_area": "PLAN",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are internal and external dependencies identified and tracked?",
+    "gap_text": "Gap: Hidden dependencies cause delays that were preventable."
+  },
+  {
+    "rule_id": "PLAN-1d",
+    "practice_area": "PLAN",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are critical dependencies formally negotiated and agreed with dependent parties?",
+    "gap_text": "Gap: Assumed dependencies that are not formally agreed create risk."
+  },
+  {
+    "rule_id": "PLAN-2",
+    "practice_area": "PLAN",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Are stakeholders identified with their roles, responsibilities and communication frequency documented?",
+    "gap_text": "Gap: Unengaged stakeholders cause rework and late-stage requirement changes."
+  },
+  {
+    "rule_id": "PLAN-2a",
+    "practice_area": "PLAN",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is there a RACI matrix or equivalent responsibility assignment for key activities?",
+    "gap_text": "Observation: Without a RACI, accountability is unclear and tasks fall through gaps."
+  },
+  {
+    "rule_id": "PLAN-2b",
+    "practice_area": "PLAN",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is a communication plan (meeting cadence, report frequency, escalation path) documented?",
+    "gap_text": "Gap: No communication plan means information gaps and late discovery of issues."
+  },
+  {
+    "rule_id": "PLAN-2c",
+    "practice_area": "PLAN",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are meeting records (minutes, action items and owners) maintained for status and review meetings?",
+    "gap_text": "Gap: Decisions made in meetings without records are unaccountable and unauditable."
+  },
+  {
+    "rule_id": "PLAN-3",
+    "practice_area": "PLAN",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Is a deployment or go-live plan documented covering: deployment steps, rollback plan, cutover checklist and support handover?",
+    "gap_text": "Gap: Unplanned deployments carry high production risk."
+  },
+  {
+    "rule_id": "PLAN-3a",
+    "practice_area": "PLAN",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is a rollback or contingency plan defined in case deployment fails?",
+    "gap_text": "Gap: No rollback plan means a failed deployment may result in extended downtime."
+  },
+  {
+    "rule_id": "PLAN-3b",
+    "practice_area": "PLAN",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are user training and user documentation delivery planned and scheduled before go-live?",
+    "gap_text": "Gap: Users not prepared at go-live leads to adoption failure and support burden."
+  },
+  {
+    "rule_id": "PLAN-4",
+    "practice_area": "PLAN",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Is there evidence that sprint retrospectives or post-milestone reviews are conducted and recorded?",
+    "gap_text": "Observation: Without retrospectives, process improvement opportunities are not captured."
+  },
+  {
+    "rule_id": "PLAN-4a",
+    "practice_area": "PLAN",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are action items from retrospectives logged, assigned and tracked to closure?",
+    "gap_text": "Observation: Retrospective findings not actioned mean the same problems repeat."
+  },
+  {
+    "rule_id": "PLAN-4b",
+    "practice_area": "PLAN",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are lessons learned stored in an organisational repository for reuse on future projects?",
+    "gap_text": "Observation: Lessons learned not stored are lost when the team moves on."
+  },
+  {
+    "rule_id": "PLAN-5",
+    "practice_area": "PLAN",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Is the project plan updated at least at every sprint or milestone to reflect actual progress?",
+    "gap_text": "Gap: A stale plan is not useful for management decisions or stakeholder communication."
+  },
+  {
+    "rule_id": "VV-G1",
+    "practice_area": "VV",
+    "level": "L1-Gate",
+    "is_gate": true,
+    "is_check": false,
+    "is_probe": false,
+    "audit_check": "Locate the Test Plan or V&V Plan. Does it exist and is it approved?",
+    "gap_text": "Gap: No test plan found. Testing is ad hoc with no defined scope or strategy."
+  },
+  {
+    "rule_id": "VV-1",
+    "practice_area": "VV",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Does the test plan define scope, strategy and types of testing: unit, integration, system, UAT, regression, security and performance?",
+    "gap_text": "Gap: Undefined test scope results in coverage gaps and untested risk areas."
+  },
+  {
+    "rule_id": "VV-1a",
+    "practice_area": "VV",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is the entry criteria (what must be true before testing starts) and exit criteria (what must be true before testing ends) defined for each phase?",
+    "gap_text": "Gap: Testing starts or ends without a clear gate, allowing defective releases."
+  },
+  {
+    "rule_id": "VV-1b",
+    "practice_area": "VV",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are test environment requirements documented (hardware, software, data, network)?",
+    "gap_text": "Gap: Environment mismatch between test and production invalidates test results."
+  },
+  {
+    "rule_id": "VV-1c",
+    "practice_area": "VV",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is there a test environment readiness sign-off before testing commences?",
+    "gap_text": "Observation: Testing on an unverified environment introduces false results."
+  },
+  {
+    "rule_id": "VV-G2",
+    "practice_area": "VV",
+    "level": "L1-Gate",
+    "is_gate": true,
+    "is_check": false,
+    "is_probe": false,
+    "audit_check": "Locate Test Cases. Do documented test cases exist and are they linked to requirements?",
+    "gap_text": "Gap: No test cases found. Test coverage is unknown and testing is unstructured."
+  },
+  {
+    "rule_id": "VV-2",
+    "practice_area": "VV",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Do test cases cover: functional requirements, non-functional requirements, negative scenarios and boundary conditions?",
+    "gap_text": "Gap: Incomplete test coverage means defects in uncovered areas will reach production."
+  },
+  {
+    "rule_id": "VV-2a",
+    "practice_area": "VV",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is each test case linked to a specific requirement ID in the RTM?",
+    "gap_text": "Gap: Traceability broken. Requirements coverage cannot be verified."
+  },
+  {
+    "rule_id": "VV-2b",
+    "practice_area": "VV",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are negative test cases included: invalid inputs, boundary values and error conditions?",
+    "gap_text": "Gap: Happy-path-only testing is insufficient. Edge cases cause production incidents."
+  },
+  {
+    "rule_id": "VV-2c",
+    "practice_area": "VV",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are security test cases included addressing: injection, authentication bypass, privilege escalation and OWASP Top 10 risks?",
+    "gap_text": "Gap: Security gaps in test design mean vulnerabilities will not be caught before release."
+  },
+  {
+    "rule_id": "VV-2d",
+    "practice_area": "VV",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is a performance or load test plan included with defined load targets and acceptance thresholds?",
+    "gap_text": "Gap: No performance testing means the system may fail under real production load."
+  },
+  {
+    "rule_id": "VV-2e",
+    "practice_area": "VV",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is a regression test suite defined to re-verify existing functionality after changes?",
+    "gap_text": "Gap: Without regression testing, changes may break existing working functionality."
+  },
+  {
+    "rule_id": "VV-G3",
+    "practice_area": "VV",
+    "level": "L1-Gate",
+    "is_gate": true,
+    "is_check": false,
+    "is_probe": false,
+    "audit_check": "Locate Test Execution Results or Test Reports. Do they exist?",
+    "gap_text": "Gap: Test results not recorded. Testing may have occurred but cannot be evidenced."
+  },
+  {
+    "rule_id": "VV-3",
+    "practice_area": "VV",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Do results show: test case ID, execution date, actual result, pass or fail status and tester name?",
+    "gap_text": "Gap: Incomplete test records mean quality cannot be assessed from the evidence."
+  },
+  {
+    "rule_id": "VV-3a",
+    "practice_area": "VV",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is a defect ID cross-referenced for every failed test case?",
+    "gap_text": "Gap: Failed tests not linked to defects mean failures are not being tracked."
+  },
+  {
+    "rule_id": "VV-3b",
+    "practice_area": "VV",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is test coverage percentage reported (requirements covered versus total)?",
+    "gap_text": "Observation: Coverage metric not reported. Untested requirement areas are invisible."
+  },
+  {
+    "rule_id": "VV-3c",
+    "practice_area": "VV",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Were performance and load test results captured and compared against defined thresholds?",
+    "gap_text": "Gap: Performance test results missing or not compared against acceptance criteria."
+  },
+  {
+    "rule_id": "VV-G4",
+    "practice_area": "VV",
+    "level": "L1-Gate",
+    "is_gate": true,
+    "is_check": false,
+    "is_probe": false,
+    "audit_check": "Locate the Defect Log or Bug Tracker. Does it exist with both open and closed defects?",
+    "gap_text": "Gap: No defect tracking. Product quality is completely unknown."
+  },
+  {
+    "rule_id": "VV-4",
+    "practice_area": "VV",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Does each defect record contain: ID, severity, priority, description, steps to reproduce, status, owner, resolution and closure date?",
+    "gap_text": "Gap: Incomplete defect records cannot be used for quality analysis or audit."
+  },
+  {
+    "rule_id": "VV-4a",
+    "practice_area": "VV",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are all open critical and high defects reviewed and do they have resolution timelines?",
+    "gap_text": "Gap: High severity open defects without timelines are uncontrolled production risks."
+  },
+  {
+    "rule_id": "VV-4b",
+    "practice_area": "VV",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is re-testing evidence logged for every closed defect?",
+    "gap_text": "Gap: Defects marked closed without re-test evidence may not be truly resolved."
+  },
+  {
+    "rule_id": "VV-4c",
+    "practice_area": "VV",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are defect trends analysed by severity, module and root cause and are results reported?",
+    "gap_text": "Observation: Defect trend analysis is not being performed. Systemic quality issues will go undetected."
+  },
+  {
+    "rule_id": "VV-4d",
+    "practice_area": "VV",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is root cause analysis performed on critical or recurring defects?",
+    "gap_text": "Gap: Recurring defects without RCA indicate a systemic problem that will continue."
+  },
+  {
+    "rule_id": "VV-G5",
+    "practice_area": "VV",
+    "level": "L1-Gate",
+    "is_gate": true,
+    "is_check": false,
+    "is_probe": false,
+    "audit_check": "Locate the UAT Sign-off record. Does formal UAT acceptance evidence exist?",
+    "gap_text": "Gap: UAT not signed off. Release lacks formal business acceptance."
+  },
+  {
+    "rule_id": "VV-5",
+    "practice_area": "VV",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Is the UAT sign-off signed by an authorised business representative (not only the IT team)?",
+    "gap_text": "Gap: IT-only UAT sign-off does not constitute business acceptance."
+  },
+  {
+    "rule_id": "VV-5a",
+    "practice_area": "VV",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Does the sign-off specify the scope of what was tested and accepted?",
+    "gap_text": "Gap: A blank sign-off has no audit value and cannot be used to scope what was accepted."
+  },
+  {
+    "rule_id": "VV-5b",
+    "practice_area": "VV",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are any open UAT defects listed with formally agreed acceptance rationale and closure timelines?",
+    "gap_text": "Gap: Open defects accepted at go-live without a documented decision record are uncontrolled."
+  },
+  {
+    "rule_id": "PR-G1",
+    "practice_area": "PR",
+    "level": "L1-Gate",
+    "is_gate": true,
+    "is_check": false,
+    "is_probe": false,
+    "audit_check": "Locate Peer Review records (review logs, annotated documents, pull request comments). Do they exist?",
+    "gap_text": "Gap: No review evidence found. Peer reviews are not being performed."
+  },
+  {
+    "rule_id": "PR-1",
+    "practice_area": "PR",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Do reviews cover all key work product types: requirements, design, code and test cases?",
+    "gap_text": "Gap: Gaps in review coverage allow defects to pass undetected into later phases."
+  },
+  {
+    "rule_id": "PR-1a",
+    "practice_area": "PR",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is there at least one code review record per sprint or release?",
+    "gap_text": "Gap: Code reviews not evidenced. Code quality is not being independently verified."
+  },
+  {
+    "rule_id": "PR-1b",
+    "practice_area": "PR",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Were requirements and design documents reviewed before development started?",
+    "gap_text": "Gap: Defects in upstream artefacts were not caught early and will be expensive to fix."
+  },
+  {
+    "rule_id": "PR-2",
+    "practice_area": "PR",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Do review records show: reviewer name, date, work product version, issues found and resolution status?",
+    "gap_text": "Gap: Incomplete review records mean the review cannot be audited."
+  },
+  {
+    "rule_id": "PR-2a",
+    "practice_area": "PR",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Were all issues found in reviews formally logged and tracked to closure?",
+    "gap_text": "Gap: Review findings not actioned mean the review had no effect."
+  },
+  {
+    "rule_id": "PR-2b",
+    "practice_area": "PR",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Were reviewers independent of the author of the work product being reviewed?",
+    "gap_text": "Gap: Self-review defeats the purpose of peer review."
+  },
+  {
+    "rule_id": "PR-2c",
+    "practice_area": "PR",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are review metrics (defect density found per review, review coverage) collected and used for improvement?",
+    "gap_text": "Observation: Review metrics not collected. Effectiveness of the review process cannot be measured."
+  },
+  {
+    "rule_id": "SVC-G1",
+    "practice_area": "SVC",
+    "level": "L1-Gate",
+    "is_gate": true,
+    "is_check": false,
+    "is_probe": false,
+    "audit_check": "Locate the SLA or Service Agreement document. Does it exist and is it signed by both parties?",
+    "gap_text": "Gap: No signed SLA found. Service levels are undefined and unenforceable."
+  },
+  {
+    "rule_id": "SVC-1",
+    "practice_area": "SVC",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Does the SLA define: priority categories, response times, resolution times, escalation path and review frequency?",
+    "gap_text": "Gap: Incomplete SLA creates disputes and unmet expectations."
+  },
+  {
+    "rule_id": "SVC-1a",
+    "practice_area": "SVC",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are priority levels (P1, P2, P3, P4) defined with business impact criteria for classification?",
+    "gap_text": "Gap: Without priority criteria, all tickets are treated with equal urgency, causing critical issues to be delayed."
+  },
+  {
+    "rule_id": "SVC-1b",
+    "practice_area": "SVC",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are response and resolution time targets defined per priority level?",
+    "gap_text": "Gap: SLA targets missing. Performance cannot be measured."
+  },
+  {
+    "rule_id": "SVC-1c",
+    "practice_area": "SVC",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is an escalation matrix documented (who to contact at each escalation level and within what timeframe)?",
+    "gap_text": "Gap: No escalation matrix means breaches are not escalated in time."
+  },
+  {
+    "rule_id": "SVC-1d",
+    "practice_area": "SVC",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is the SLA reviewed and updated at defined intervals (at minimum annually)?",
+    "gap_text": "Observation: Outdated SLA may not reflect current service scope or business priorities."
+  },
+  {
+    "rule_id": "SVC-G2",
+    "practice_area": "SVC",
+    "level": "L1-Gate",
+    "is_gate": true,
+    "is_check": false,
+    "is_probe": false,
+    "audit_check": "Locate the Service Delivery Estimation document. Does it exist?",
+    "gap_text": "Gap: Service delivery effort has not been estimated. Resource planning has no basis."
+  },
+  {
+    "rule_id": "SVC-2",
+    "practice_area": "SVC",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Does the estimation cover: staffing needs, tool requirements, support volumes and coverage hours?",
+    "gap_text": "Gap: Incomplete service estimation leads to understaffing and SLA breaches."
+  },
+  {
+    "rule_id": "SVC-2a",
+    "practice_area": "SVC",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is the estimation reviewed and approved by the service delivery manager and the customer?",
+    "gap_text": "Gap: Unapproved service estimation is not a valid commitment."
+  },
+  {
+    "rule_id": "SVC-G3",
+    "practice_area": "SVC",
+    "level": "L1-Gate",
+    "is_gate": true,
+    "is_check": false,
+    "is_probe": false,
+    "audit_check": "Locate the Incident or Service Request Log (ticket tool extract or manual log). Does it exist?",
+    "gap_text": "Gap: Incidents not logged. No audit trail. SLA compliance cannot be verified."
+  },
+  {
+    "rule_id": "SVC-3",
+    "practice_area": "SVC",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Does each ticket contain: ticket ID, category, priority, raised timestamp, description, assignee, status and resolution?",
+    "gap_text": "Gap: Incomplete ticket records mean SLA compliance cannot be measured or reported."
+  },
+  {
+    "rule_id": "SVC-3a",
+    "practice_area": "SVC",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is SLA breach status captured on each ticket (breached yes or no and breach reason if yes)?",
+    "gap_text": "Gap: SLA breach status not tracked. Performance accountability is absent."
+  },
+  {
+    "rule_id": "SVC-3b",
+    "practice_area": "SVC",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are tickets closed only after customer confirmation or after an agreed auto-close rule is applied?",
+    "gap_text": "Gap: Premature closure inflates resolution rates and misleads management reporting."
+  },
+  {
+    "rule_id": "SVC-3c",
+    "practice_area": "SVC",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is there an escalation matrix configured in the ticketing tool aligned to SLA priority levels?",
+    "gap_text": "Gap: Breaches are not automatically escalated. Critical issues are missed."
+  },
+  {
+    "rule_id": "SVC-G4",
+    "practice_area": "SVC",
+    "level": "L1-Gate",
+    "is_gate": true,
+    "is_check": false,
+    "is_probe": false,
+    "audit_check": "Locate SLA Conformance Reports. Do periodic reports exist showing SLA performance metrics?",
+    "gap_text": "Gap: SLA not measured or reported. There is no accountability for service performance."
+  },
+  {
+    "rule_id": "SVC-4",
+    "practice_area": "SVC",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Do reports show: SLA compliance percentage by priority, ticket volume by category, breach count and trend versus prior period?",
+    "gap_text": "Gap: Incomplete performance reporting prevents management visibility."
+  },
+  {
+    "rule_id": "SVC-4a",
+    "practice_area": "SVC",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are SLA breach incidents root-cause analysed and corrective actions tracked to closure?",
+    "gap_text": "Gap: Breaches will recur if root causes are not identified and resolved."
+  },
+  {
+    "rule_id": "SVC-4b",
+    "practice_area": "SVC",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are reports reviewed and acknowledged by the service manager with decisions recorded?",
+    "gap_text": "Gap: Reports produced but not reviewed and actioned serve no purpose."
+  },
+  {
+    "rule_id": "SVC-4c",
+    "practice_area": "SVC",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are recurring ticket patterns identified and escalated to a Problem Management process?",
+    "gap_text": "Gap: Reactive-only incident management without problem management allows root causes to persist."
+  },
+  {
+    "rule_id": "SVC-G5",
+    "practice_area": "SVC",
+    "level": "L1-Gate",
+    "is_gate": true,
+    "is_check": false,
+    "is_probe": false,
+    "audit_check": "Locate the KEDB (Known Error Database) or service knowledge base. Does it exist?",
+    "gap_text": "Observation: No KEDB found. Agents are reinventing solutions for known recurring issues."
+  },
+  {
+    "rule_id": "SVC-5",
+    "practice_area": "SVC",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Does the KEDB contain current workarounds and permanent fixes for known recurring issues?",
+    "gap_text": "Observation: KEDB entries may be outdated and agents may not be using current workarounds."
+  },
+  {
+    "rule_id": "SVC-5a",
+    "practice_area": "SVC",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is there evidence that agents reference the KEDB before escalating tickets?",
+    "gap_text": "Observation: KEDB is populated but not being used in the resolution process."
+  },
+  {
+    "rule_id": "SVC-5b",
+    "practice_area": "SVC",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is the KEDB updated when new issues are permanently resolved?",
+    "gap_text": "Gap: KEDB not updated with new resolutions. It becomes stale and loses value over time."
+  },
+  {
+    "rule_id": "SVC-G6",
+    "practice_area": "SVC",
+    "level": "L1-Gate",
+    "is_gate": true,
+    "is_check": false,
+    "is_probe": false,
+    "audit_check": "Locate the Service Transition Plan for new or changed services. Does it exist when applicable?",
+    "gap_text": "Gap: No transition plan for a service change. The transition is unmanaged."
+  },
+  {
+    "rule_id": "SVC-6",
+    "practice_area": "SVC",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Does the plan cover: cutover activities, parallel run approach, training, rollback and stakeholder communication?",
+    "gap_text": "Gap: Incomplete transition plan increases risk of service disruption during changeover."
+  },
+  {
+    "rule_id": "SVC-6a",
+    "practice_area": "SVC",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are user training and knowledge transfer activities completed before transition?",
+    "gap_text": "Gap: Users not trained before a service transition leads to adoption failure."
+  },
+  {
+    "rule_id": "SVC-G7",
+    "practice_area": "SVC",
+    "level": "L1-Gate",
+    "is_gate": true,
+    "is_check": false,
+    "is_probe": false,
+    "audit_check": "Locate CSAT or Customer Satisfaction survey records. Do they exist at a defined frequency?",
+    "gap_text": "Gap: No customer feedback mechanism. Customer satisfaction is unknown."
+  },
+  {
+    "rule_id": "SVC-7",
+    "practice_area": "SVC",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Are CSAT scores tracked over time and low-scoring areas analysed for improvement actions?",
+    "gap_text": "Gap: CSAT data collected but not used for service improvement."
+  },
+  {
+    "rule_id": "SVC-7a",
+    "practice_area": "SVC",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are improvement actions from poor CSAT scores tracked to closure with evidence?",
+    "gap_text": "Gap: Customer concerns raised through CSAT are not being addressed."
+  },
+  {
+    "rule_id": "DM-G1",
+    "practice_area": "DM",
+    "level": "L1-Gate",
+    "is_gate": true,
+    "is_check": false,
+    "is_probe": false,
+    "audit_check": "Locate the Data Management Strategy or Plan. Does it exist and is it approved?",
+    "gap_text": "Gap: No data management approach found. Data assets are ungoverned."
+  },
+  {
+    "rule_id": "DM-1",
+    "practice_area": "DM",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Are data management objectives formally documented and traceable to business objectives?",
+    "gap_text": "Gap: Data management initiatives are not aligned to business needs."
+  },
+  {
+    "rule_id": "DM-1a",
+    "practice_area": "DM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are data management roles defined and assigned: data owner, steward and custodian for each critical dataset?",
+    "gap_text": "Gap: Without defined roles there is no accountability for data quality or governance."
+  },
+  {
+    "rule_id": "DM-1b",
+    "practice_area": "DM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is senior management sponsorship of the data governance programme evidenced (policy sign-off, funding, representation)?",
+    "gap_text": "Gap: Data governance programmes fail without visible senior management commitment."
+  },
+  {
+    "rule_id": "DM-2",
+    "practice_area": "DM",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Does the approach address all lifecycle phases: creation or ingestion, transformation, storage, archival and disposal?",
+    "gap_text": "Gap: Ungoverned lifecycle phases create regulatory and operational risk."
+  },
+  {
+    "rule_id": "DM-2a",
+    "practice_area": "DM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are data retention and disposal policies defined and aligned to applicable regulations (GDPR, DPDP, sectoral laws)?",
+    "gap_text": "Gap: Regulatory non-compliance risk. Data may be retained longer or deleted sooner than legally required."
+  },
+  {
+    "rule_id": "DM-2b",
+    "practice_area": "DM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is data classification applied to all data assets (public, internal, confidential, restricted)?",
+    "gap_text": "Gap: Without classification, sensitive data may not receive the protection it requires."
+  },
+  {
+    "rule_id": "DM-2c",
+    "practice_area": "DM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are data archival and disposal activities evidenced (disposal logs, archival records)?",
+    "gap_text": "Observation: Archival and disposal activities are not documented. Compliance cannot be demonstrated."
+  },
+  {
+    "rule_id": "DM-3",
+    "practice_area": "DM",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Are metadata attributes defined for all critical data elements: name, definition, owner, lineage and quality rules?",
+    "gap_text": "Gap: Data cannot be understood, governed or reused without defined metadata."
+  },
+  {
+    "rule_id": "DM-3a",
+    "practice_area": "DM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is a metadata repository or data catalogue in place and kept current?",
+    "gap_text": "Gap: Without a metadata repository, data definitions drift and become unreliable."
+  },
+  {
+    "rule_id": "DM-3b",
+    "practice_area": "DM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is data lineage documented showing source to transformation to target for critical data flows?",
+    "gap_text": "Gap: Without lineage, impact analysis for changes and compliance reporting are not possible."
+  },
+  {
+    "rule_id": "DM-4",
+    "practice_area": "DM",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Are data access controls defined and implemented: who can read, write, modify and delete each data asset?",
+    "gap_text": "Gap: Uncontrolled data access risks data breach, regulatory violation and data corruption."
+  },
+  {
+    "rule_id": "DM-4a",
+    "practice_area": "DM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are privileged access rights to data periodically reviewed and recertified?",
+    "gap_text": "Gap: Stale access rights allow access beyond current job requirements."
+  },
+  {
+    "rule_id": "DM-4b",
+    "practice_area": "DM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are access control logs retained and reviewed for anomalies?",
+    "gap_text": "Observation: Access logs not reviewed. Unauthorised access attempts would go undetected."
+  },
+  {
+    "rule_id": "DQ-G1",
+    "practice_area": "DQ",
+    "level": "L1-Gate",
+    "is_gate": true,
+    "is_check": false,
+    "is_probe": false,
+    "audit_check": "Locate the Data Quality Plan or Approach document. Does it exist?",
+    "gap_text": "Gap: No data quality approach found. Data quality is not being actively managed."
+  },
+  {
+    "rule_id": "DQ-1",
+    "practice_area": "DQ",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Are data quality dimensions defined for critical datasets: accuracy, completeness, timeliness, consistency, uniqueness and validity?",
+    "gap_text": "Gap: Without defined quality dimensions, data quality cannot be measured or improved."
+  },
+  {
+    "rule_id": "DQ-1a",
+    "practice_area": "DQ",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are measurable thresholds set for each quality dimension per dataset?",
+    "gap_text": "Gap: Without numeric thresholds, there is no trigger to identify when data quality is unacceptable."
+  },
+  {
+    "rule_id": "DQ-1b",
+    "practice_area": "DQ",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are business-critical data elements specifically identified and prioritised for monitoring?",
+    "gap_text": "Gap: All data treated equally. Critical datasets may not receive appropriate attention."
+  },
+  {
+    "rule_id": "DQ-1c",
+    "practice_area": "DQ",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "For AI or machine learning datasets: are representativeness, bias indicators and labelling accuracy defined and checked?",
+    "gap_text": "Gap: AI models trained on biased or unrepresentative data produce unreliable and potentially harmful outputs."
+  },
+  {
+    "rule_id": "DQ-2",
+    "practice_area": "DQ",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Is there evidence of data profiling activities: null rate, duplicate rate, format conformance and outlier detection?",
+    "gap_text": "Gap: Data quality problems are invisible without profiling. Issues surface only in production."
+  },
+  {
+    "rule_id": "DQ-2a",
+    "practice_area": "DQ",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are profiling results documented with findings, thresholds assessed and remediation actions?",
+    "gap_text": "Gap: Profiling performed but findings not documented or actioned."
+  },
+  {
+    "rule_id": "DQ-2b",
+    "practice_area": "DQ",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are data quality assessments conducted periodically and not only at project initiation?",
+    "gap_text": "Gap: Data quality degrades over time. One-time assessment does not provide ongoing assurance."
+  },
+  {
+    "rule_id": "DQ-3",
+    "practice_area": "DQ",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Is there evidence of data cleansing activities with before and after comparison records or cleansing logs?",
+    "gap_text": "Gap: Cleansing claimed but not evidenced. Quality improvement cannot be verified."
+  },
+  {
+    "rule_id": "DQ-3a",
+    "practice_area": "DQ",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are cleansing rules documented so they can be repeated consistently?",
+    "gap_text": "Gap: Ad hoc cleansing is not repeatable. The same issues will recur."
+  },
+  {
+    "rule_id": "DQ-3b",
+    "practice_area": "DQ",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are cleansing results validated against quality thresholds after cleansing is complete?",
+    "gap_text": "Gap: Cleansing effectiveness is not verified. Sub-threshold data may remain in use."
+  },
+  {
+    "rule_id": "DQ-3c",
+    "practice_area": "DQ",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is regulatory compliance addressed in the data quality approach (GDPR accuracy requirement, DPDP, sectoral rules)?",
+    "gap_text": "Gap: Data quality requirements from regulations are not addressed. Compliance risk exists."
+  },
+  {
+    "rule_id": "ESEC-G1",
+    "practice_area": "ESEC",
+    "level": "L1-Gate",
+    "is_gate": true,
+    "is_check": false,
+    "is_probe": false,
+    "audit_check": "Locate the Security Policy or Cybersecurity Approach document. Does it exist and is it approved?",
+    "gap_text": "Gap: No security policy found. Security is unmanaged and unaccountable."
+  },
+  {
+    "rule_id": "ESEC-1",
+    "practice_area": "ESEC",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Does the security approach explicitly address Confidentiality, Integrity and Availability controls?",
+    "gap_text": "Gap: Incomplete security posture. One or more pillars of the CIA triad are unaddressed."
+  },
+  {
+    "rule_id": "ESEC-1a",
+    "practice_area": "ESEC",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is access control defined: authentication, authorisation, multi-factor authentication and identity management?",
+    "gap_text": "Gap: Unauthorised access risk due to absent or weak access control definition."
+  },
+  {
+    "rule_id": "ESEC-1b",
+    "practice_area": "ESEC",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is data encryption defined for data at rest and data in transit?",
+    "gap_text": "Gap: Data exposure risk. Sensitive data may be transmitted or stored in clear text."
+  },
+  {
+    "rule_id": "ESEC-1c",
+    "practice_area": "ESEC",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are availability targets, HA architecture and DR requirements defined and implemented?",
+    "gap_text": "Gap: Service continuity risk due to undefined availability requirements."
+  },
+  {
+    "rule_id": "ESEC-2",
+    "practice_area": "ESEC",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Are security hardening standards or baselines defined and applied to all systems (servers, network, applications)?",
+    "gap_text": "Gap: Default or weakly configured systems are primary targets for attackers."
+  },
+  {
+    "rule_id": "ESEC-2a",
+    "practice_area": "ESEC",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is compliance to security baselines verified through scanning tools or configuration audits?",
+    "gap_text": "Gap: Hardening standards defined but compliance not verified."
+  },
+  {
+    "rule_id": "ESEC-2b",
+    "practice_area": "ESEC",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is a patch management process defined with timelines for critical, high and medium vulnerability patches?",
+    "gap_text": "Gap: No patch management means known vulnerabilities remain unaddressed over time."
+  },
+  {
+    "rule_id": "ESEC-2c",
+    "practice_area": "ESEC",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is patch compliance monitored and reported at defined frequency?",
+    "gap_text": "Observation: Patch compliance not tracked. Unpatched systems are invisible to management."
+  },
+  {
+    "rule_id": "ESEC-3",
+    "practice_area": "ESEC",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Is security awareness training conducted for all staff and are training records maintained?",
+    "gap_text": "Gap: Human error is the most common cause of security incidents. Absent training increases risk."
+  },
+  {
+    "rule_id": "ESEC-3a",
+    "practice_area": "ESEC",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is training conducted at onboarding and refreshed at least annually?",
+    "gap_text": "Gap: Lapsed training means staff awareness has not kept pace with evolving threats."
+  },
+  {
+    "rule_id": "ESEC-3b",
+    "practice_area": "ESEC",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Does training cover: phishing, password hygiene, data handling, social engineering and incident reporting?",
+    "gap_text": "Gap: Training is too generic. Key threat vectors are not covered."
+  },
+  {
+    "rule_id": "ESEC-4",
+    "practice_area": "ESEC",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Are security metrics (patch compliance, open vulnerabilities, security incidents, access reviews) reported to management at defined frequency?",
+    "gap_text": "Gap: Management has no visibility of the security posture. Risk decisions cannot be made."
+  },
+  {
+    "rule_id": "ESEC-4a",
+    "practice_area": "ESEC",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are security metrics reviewed in management meetings with actions recorded?",
+    "gap_text": "Observation: Security metrics produced but not discussed or acted upon at management level."
+  },
+  {
+    "rule_id": "MST-G1",
+    "practice_area": "MST",
+    "level": "L1-Gate",
+    "is_gate": true,
+    "is_check": false,
+    "is_probe": false,
+    "audit_check": "Locate the Vulnerability or Threat Register and the most recent VAPT report. Do they exist?",
+    "gap_text": "Gap: Threats and vulnerabilities are not formally tracked. Security assurance is absent."
+  },
+  {
+    "rule_id": "MST-1",
+    "practice_area": "MST",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Does the register contain: source of vulnerability, risk score, affected asset, owner, status and remediation date?",
+    "gap_text": "Gap: Incomplete vulnerability records mean risk exposure cannot be assessed."
+  },
+  {
+    "rule_id": "MST-1a",
+    "practice_area": "MST",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are critical (CVSS 9.0 and above) and high vulnerabilities remediated within defined SLA timelines?",
+    "gap_text": "Gap: Critical vulnerabilities unaddressed represent an active and known risk to the organisation."
+  },
+  {
+    "rule_id": "MST-1b",
+    "practice_area": "MST",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is the vulnerability register reviewed at least monthly?",
+    "gap_text": "Gap: Stale register misses new CVEs published since the last review."
+  },
+  {
+    "rule_id": "MST-1c",
+    "practice_area": "MST",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are third-party and supplier components included in the vulnerability assessment scope?",
+    "gap_text": "Gap: Supply chain vulnerabilities are excluded from assessment. This is a common attack vector."
+  },
+  {
+    "rule_id": "MST-2",
+    "practice_area": "MST",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Is there a VAPT report from the current release or assessment cycle?",
+    "gap_text": "Gap: No VAPT conducted. Security assurance for this release is absent."
+  },
+  {
+    "rule_id": "MST-2a",
+    "practice_area": "MST",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are all VAPT findings formally logged in the vulnerability register with owners and timelines?",
+    "gap_text": "Gap: VAPT performed but findings not tracked. Remediation status is unknown."
+  },
+  {
+    "rule_id": "MST-2b",
+    "practice_area": "MST",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are critical and high VAPT findings remediated and re-tested before go-live?",
+    "gap_text": "Gap: Known vulnerabilities are being released into production."
+  },
+  {
+    "rule_id": "MST-G2",
+    "practice_area": "MST",
+    "level": "L1-Gate",
+    "is_gate": true,
+    "is_check": false,
+    "is_probe": false,
+    "audit_check": "Locate the Incident Response Plan or Playbook. Does it exist?",
+    "gap_text": "Gap: No incident response plan. Security incident response will be uncoordinated."
+  },
+  {
+    "rule_id": "MST-3",
+    "practice_area": "MST",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Does the plan cover: detection, containment, eradication, recovery, communication and post-incident review?",
+    "gap_text": "Gap: Incomplete IRP leaves critical response steps undefined."
+  },
+  {
+    "rule_id": "MST-3a",
+    "practice_area": "MST",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are roles and responsibilities for incident response defined with named individuals or roles?",
+    "gap_text": "Gap: No role clarity during a live incident causes delays and confusion."
+  },
+  {
+    "rule_id": "MST-3b",
+    "practice_area": "MST",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is the IRP tested at least annually through a tabletop exercise or drill?",
+    "gap_text": "Gap: An untested plan may not function as expected under real incident conditions."
+  },
+  {
+    "rule_id": "MST-3c",
+    "practice_area": "MST",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is there a post-incident review process and are PIR records with lessons learned retained?",
+    "gap_text": "Gap: Lessons from past incidents are not captured and the same errors will recur."
+  },
+  {
+    "rule_id": "BC-G1",
+    "practice_area": "BC",
+    "level": "L1-Gate",
+    "is_gate": true,
+    "is_check": false,
+    "is_probe": false,
+    "audit_check": "Locate the Business Continuity Plan or Disaster Recovery Plan. Does it exist?",
+    "gap_text": "Gap: No BCP or DR Plan. The organisation cannot demonstrate resilience in the event of a disruption."
+  },
+  {
+    "rule_id": "BC-1",
+    "practice_area": "BC",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Does the plan define: RPO, RTO, recovery procedures, roles, communication plan and alternate site or system details?",
+    "gap_text": "Gap: Incomplete BCP means recovery cannot be executed in a controlled manner."
+  },
+  {
+    "rule_id": "BC-1a",
+    "practice_area": "BC",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is the BCP or DR plan tested at defined intervals (at minimum annually)?",
+    "gap_text": "Gap: An untested BCP provides false assurance. Recovery capability is unproven."
+  },
+  {
+    "rule_id": "BC-1b",
+    "practice_area": "BC",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are test results documented with gaps identified and remediation tracked?",
+    "gap_text": "Gap: DR test conducted but gaps not documented or resolved."
+  },
+  {
+    "rule_id": "CM-G1",
+    "practice_area": "CM",
+    "level": "L1-Gate",
+    "is_gate": true,
+    "is_check": false,
+    "is_probe": false,
+    "audit_check": "Locate Configuration Management evidence (CM Plan, SCM tool extract, CI register). Does it exist?",
+    "gap_text": "Gap: No CM evidence found. Configurations are ungoverned."
+  },
+  {
+    "rule_id": "CM-1",
+    "practice_area": "CM",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Does a CI register exist listing all CIs with: ID, type, owner, version and status?",
+    "gap_text": "Gap: CIs not inventoried. Configuration changes cannot be controlled or audited."
+  },
+  {
+    "rule_id": "CM-1a",
+    "practice_area": "CM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Does the CI list cover: code, documents, tools, configurations, certificates and infrastructure?",
+    "gap_text": "Gap: Incomplete CI coverage means some assets are changing outside of change control."
+  },
+  {
+    "rule_id": "CM-1b",
+    "practice_area": "CM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are all CIs under version control with full commit or change history?",
+    "gap_text": "Gap: No version history means rollback to a previous known-good state is not possible."
+  },
+  {
+    "rule_id": "CM-2",
+    "practice_area": "CM",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Is a formal Change Control process followed: CR raised, impact assessed, approved, implemented and verified?",
+    "gap_text": "Gap: Uncontrolled changes destabilise systems and create audit risk."
+  },
+  {
+    "rule_id": "CM-2a",
+    "practice_area": "CM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is there a Change Advisory Board or equivalent approval body for non-emergency changes?",
+    "gap_text": "Gap: Changes approved by individuals without peer review lack adequate oversight."
+  },
+  {
+    "rule_id": "CM-2b",
+    "practice_area": "CM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are emergency or hotfix changes retrospectively approved and documented?",
+    "gap_text": "Gap: Emergency changes bypass controls without post-approval. This is a compliance gap."
+  },
+  {
+    "rule_id": "CM-3",
+    "practice_area": "CM",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Are configuration audits conducted at defined intervals to verify live configurations match their CM records?",
+    "gap_text": "Gap: Configuration drift is undetected without periodic audits."
+  },
+  {
+    "rule_id": "CM-3a",
+    "practice_area": "CM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are audit findings remediated with evidence and audit records retained?",
+    "gap_text": "Gap: Audit findings not remediated. The audit served no corrective purpose."
+  },
+  {
+    "rule_id": "PRIV-G1",
+    "practice_area": "PRIV",
+    "level": "L1-Gate",
+    "is_gate": true,
+    "is_check": false,
+    "is_probe": false,
+    "audit_check": "Locate Access Review records (quarterly or annual privileged access review). Do they exist?",
+    "gap_text": "Gap: No access review records. Privileged access is not periodically recertified."
+  },
+  {
+    "rule_id": "PRIV-1",
+    "practice_area": "PRIV",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Do access reviews cover all privileged accounts, shared accounts and service accounts?",
+    "gap_text": "Gap: Incomplete access reviews leave high-risk accounts unreviewed."
+  },
+  {
+    "rule_id": "PRIV-1a",
+    "practice_area": "PRIV",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are access rights revoked or adjusted promptly when employees leave or change roles?",
+    "gap_text": "Gap: Stale access rights for leavers or role-changers are a common source of security incidents."
+  },
+  {
+    "rule_id": "PRIV-1b",
+    "practice_area": "PRIV",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are review outcomes (continue access, modify access, revoke access) documented with approver name?",
+    "gap_text": "Gap: Access review completed but outcomes not documented. It cannot be evidenced in an audit."
+  },
+  {
+    "rule_id": "SAF-G1",
+    "practice_area": "SAF",
+    "level": "L1-Gate",
+    "is_gate": true,
+    "is_check": false,
+    "is_probe": false,
+    "audit_check": "Locate the Safety Management Plan or Safety Case. Does it exist and is it approved?",
+    "gap_text": "Gap: No safety plan found. Safety management is absent from this project."
+  },
+  {
+    "rule_id": "SAF-1",
+    "practice_area": "SAF",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Are safety requirements derived from hazard analysis and formally documented in the requirements artefact?",
+    "gap_text": "Gap: Safety needs have not been translated into verifiable requirements."
+  },
+  {
+    "rule_id": "SAF-1a",
+    "practice_area": "SAF",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is each safety requirement traceable to a specific hazard in the Hazard Log?",
+    "gap_text": "Gap: Traceability broken. Some identified hazards may have no corresponding requirement."
+  },
+  {
+    "rule_id": "SAF-1b",
+    "practice_area": "SAF",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are applicable safety regulations and standards (IEC 61508, ISO 26262, DO-178, IEC 62443 or sector-specific) identified and addressed?",
+    "gap_text": "Gap: Regulatory non-compliance. The solution may not be certified for its intended use."
+  },
+  {
+    "rule_id": "SAF-G2",
+    "practice_area": "SAF",
+    "level": "L1-Gate",
+    "is_gate": true,
+    "is_check": false,
+    "is_probe": false,
+    "audit_check": "Locate the Hazard Log or Safety Risk Register. Does it exist?",
+    "gap_text": "Gap: No hazard log found. Hazards have not been identified or tracked."
+  },
+  {
+    "rule_id": "SAF-2",
+    "practice_area": "SAF",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Does each hazard entry contain: ID, description, likelihood, severity, risk level, mitigation and residual risk after mitigation?",
+    "gap_text": "Gap: Incomplete hazard records mean risk exposure cannot be properly assessed."
+  },
+  {
+    "rule_id": "SAF-2a",
+    "practice_area": "SAF",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are high-risk and unresolvable hazards formally accepted by the designated approving authority with sign-off evidence?",
+    "gap_text": "Gap: Risks accepted informally are not auditable and may not have the correct level of authorisation."
+  },
+  {
+    "rule_id": "SAF-2b",
+    "practice_area": "SAF",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is the hazard log reviewed at defined intervals and updated when new hazards are identified?",
+    "gap_text": "Gap: Stale hazard log misses emerging risks introduced by design or environment changes."
+  },
+  {
+    "rule_id": "SAF-3",
+    "practice_area": "SAF",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Is there evidence of safety testing activities (simulation, stress testing, environmental testing) with documented results?",
+    "gap_text": "Gap: Safety requirements not verified. The solution may not be safe to deploy."
+  },
+  {
+    "rule_id": "SAF-3a",
+    "practice_area": "SAF",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are safety test results reviewed and accepted by an independent authority?",
+    "gap_text": "Gap: Self-assessed safety evidence is insufficient for most regulatory frameworks."
+  },
+  {
+    "rule_id": "SAF-3b",
+    "practice_area": "SAF",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are safety certifications or regulatory approvals obtained and retained as evidence?",
+    "gap_text": "Gap: Required certifications not obtained. The product may not be legally cleared for use."
+  },
+  {
+    "rule_id": "SAF-4",
+    "practice_area": "SAF",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Have all project team members received applicable safety training and are records maintained?",
+    "gap_text": "Gap: Safety training not evidenced. Personnel may be operating without required safety knowledge."
+  },
+  {
+    "rule_id": "SAF-4a",
+    "practice_area": "SAF",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is a safety incident log maintained capturing all near-misses, incidents and corrective actions?",
+    "gap_text": "Gap: Safety incidents not logged. Patterns cannot be identified and systemic issues persist."
+  },
+  {
+    "rule_id": "SAF-4b",
+    "practice_area": "SAF",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are emergency response procedures documented, accessible to all personnel and tested periodically?",
+    "gap_text": "Gap: Emergency procedures not documented or tested. Response to an incident will be uncontrolled."
+  },
+  {
+    "rule_id": "SUP-G1",
+    "practice_area": "SUP",
+    "level": "L1-Gate",
+    "is_gate": true,
+    "is_check": false,
+    "is_probe": false,
+    "audit_check": "Locate the Supplier or Vendor Agreement (contract, SOW, MSA). Does it exist and is it signed by authorised representatives?",
+    "gap_text": "Gap: No signed agreement found. Supplier obligations are not formalised or enforceable."
+  },
+  {
+    "rule_id": "SUP-1",
+    "practice_area": "SUP",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Does the agreement define: scope, deliverables, timelines, quality criteria, SLAs, IP ownership, confidentiality and exit clauses?",
+    "gap_text": "Gap: Incomplete agreement creates legal and operational disputes."
+  },
+  {
+    "rule_id": "SUP-1a",
+    "practice_area": "SUP",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are measurable quality and performance metrics specified in the agreement?",
+    "gap_text": "Gap: Vague quality expectations in the contract mean underperformance cannot be formally challenged."
+  },
+  {
+    "rule_id": "SUP-1b",
+    "practice_area": "SUP",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are security and data protection obligations of the supplier explicitly stated in the agreement?",
+    "gap_text": "Gap: Supplier security and privacy obligations not contractually defined. Liability gap exists."
+  },
+  {
+    "rule_id": "SUP-1c",
+    "practice_area": "SUP",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is an IP and confidentiality agreement in place covering all work products produced by the supplier?",
+    "gap_text": "Gap: IP ownership is unclear. Confidential data shared with the supplier may not be adequately protected."
+  },
+  {
+    "rule_id": "SUP-1d",
+    "practice_area": "SUP",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is there an exit plan or knowledge transfer plan to transition services away from the supplier if needed?",
+    "gap_text": "Observation: No exit plan. Dependency on the supplier cannot be managed or reduced."
+  },
+  {
+    "rule_id": "SUP-G2",
+    "practice_area": "SUP",
+    "level": "L1-Gate",
+    "is_gate": true,
+    "is_check": false,
+    "is_probe": false,
+    "audit_check": "Locate the Supplier Due Diligence or Vendor Evaluation record. Does it exist?",
+    "gap_text": "Gap: No due diligence or evaluation record. The supplier was selected without documented assessment."
+  },
+  {
+    "rule_id": "SUP-2",
+    "practice_area": "SUP",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Was a due diligence assessment conducted covering: technical capability, financial stability, security posture, regulatory compliance and references?",
+    "gap_text": "Gap: Supplier selected without adequate due diligence. Undiscovered risks may materialise."
+  },
+  {
+    "rule_id": "SUP-2a",
+    "practice_area": "SUP",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Was a formal DAR process followed for vendor selection with documented criteria, scoring and rationale?",
+    "gap_text": "Gap: Vendor selected without a transparent decision process. Selection cannot be audited or justified."
+  },
+  {
+    "rule_id": "SUP-2b",
+    "practice_area": "SUP",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Was the final vendor selection approved by authorised management?",
+    "gap_text": "Gap: Vendor selected without proper management approval."
+  },
+  {
+    "rule_id": "SUP-G3",
+    "practice_area": "SUP",
+    "level": "L1-Gate",
+    "is_gate": true,
+    "is_check": false,
+    "is_probe": false,
+    "audit_check": "Locate Supplier Performance Reports or scorecards. Do they exist at defined frequency?",
+    "gap_text": "Gap: Supplier performance not monitored. Underperformance will not be detected in time."
+  },
+  {
+    "rule_id": "SUP-3",
+    "practice_area": "SUP",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Do reports cover: delivery timeliness, defect rates, SLA compliance, security incidents and invoice versus deliverable reconciliation?",
+    "gap_text": "Gap: Performance monitored only partially. Key performance dimensions are invisible."
+  },
+  {
+    "rule_id": "SUP-3a",
+    "practice_area": "SUP",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are underperforming suppliers issued formal corrective action requests with timelines?",
+    "gap_text": "Gap: Underperformance tolerated without consequence. No commercial or contractual recourse exercised."
+  },
+  {
+    "rule_id": "SUP-3b",
+    "practice_area": "SUP",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are supplier performance trends reviewed at executive level at defined intervals?",
+    "gap_text": "Observation: Management is not reviewing supplier performance. Strategic supplier risk is invisible."
+  },
+  {
+    "rule_id": "SUP-3c",
+    "practice_area": "SUP",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is an SBOM or software component manifest obtained from software suppliers and reviewed for known CVEs?",
+    "gap_text": "Gap: Supply chain vulnerability risk not assessed. Vulnerable components may be in use."
+  },
+  {
+    "rule_id": "SUP-3d",
+    "practice_area": "SUP",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are supplier invoices verified against agreed milestones and accepted deliverables before payment authorisation?",
+    "gap_text": "Gap: Payment made without verifying deliverable acceptance. Financial and quality controls are bypassed."
+  },
+  {
+    "rule_id": "CAR-G1",
+    "practice_area": "CAR",
+    "level": "L1-Gate",
+    "is_gate": true,
+    "is_check": false,
+    "is_probe": false,
+    "audit_check": "Locate Causal Analysis and Resolution records or the RCA log. Do they exist for significant defects, failures and service issues?",
+    "gap_text": "Gap: RCA not performed. Defects and issues will recur because root causes are unaddressed."
+  },
+  {
+    "rule_id": "CAR-1",
+    "practice_area": "CAR",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Are outcomes selected for RCA using defined criteria (severity, recurrence, customer impact)?",
+    "gap_text": "Gap: RCA targets are selected randomly or not at all. Significant issues may go unanalysed."
+  },
+  {
+    "rule_id": "CAR-1a",
+    "practice_area": "CAR",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is a structured analysis method used and documented (5-Why, Fishbone, Fault Tree)?",
+    "gap_text": "Gap: Informal RCA produces shallow root causes and ineffective corrective actions."
+  },
+  {
+    "rule_id": "CAR-1b",
+    "practice_area": "CAR",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Does each RCA record show: issue, root cause, contributing factors, proposed actions, owners and due dates?",
+    "gap_text": "Gap: Incomplete RCA records cannot be reviewed, tracked or audited."
+  },
+  {
+    "rule_id": "CAR-1c",
+    "practice_area": "CAR",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are corrective actions implemented and verified as effective before the RCA is closed?",
+    "gap_text": "Gap: Corrective actions raised on paper but not implemented or verified."
+  },
+  {
+    "rule_id": "CAR-1d",
+    "practice_area": "CAR",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is trend analysis performed across RCA records to identify systemic issues at project or organisation level?",
+    "gap_text": "Observation: Individual RCAs performed but cross-project trends not analysed. Systemic issues persist."
+  },
+  {
+    "rule_id": "CAR-1e",
+    "practice_area": "CAR",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are proven effective resolutions submitted to the organisational process library for reuse across teams?",
+    "gap_text": "Observation: Effective fixes discovered in one project are not shared with the rest of the organisation."
+  },
+  {
+    "rule_id": "RSK-G1",
+    "practice_area": "RSK",
+    "level": "L1-Gate",
+    "is_gate": true,
+    "is_check": false,
+    "is_probe": false,
+    "audit_check": "Locate the Risk and Opportunity Register or Tracker. Does it exist and is it current?",
+    "gap_text": "Gap: Risks not tracked. The project or organisation is exposed to unmanaged risk."
+  },
+  {
+    "rule_id": "RSK-1",
+    "practice_area": "RSK",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Does each risk entry contain: ID, category, description, likelihood, impact, exposure score, owner, status and mitigation plan?",
+    "gap_text": "Gap: Incomplete risk records mean risks cannot be properly prioritised or managed."
+  },
+  {
+    "rule_id": "RSK-1a",
+    "practice_area": "RSK",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are all risk categories covered: technical, schedule, resource, financial, security, compliance and supplier?",
+    "gap_text": "Gap: Limited risk categories mean significant risks in uncovered areas are invisible."
+  },
+  {
+    "rule_id": "RSK-1b",
+    "practice_area": "RSK",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is the risk register reviewed and updated in every project status review meeting?",
+    "gap_text": "Gap: Stale risk register. New risks emerging between reviews are not captured."
+  },
+  {
+    "rule_id": "RSK-1c",
+    "practice_area": "RSK",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are risks exceeding the defined risk appetite or tolerance escalated to senior management?",
+    "gap_text": "Gap: High-risk items managed only at team level without escalation. Management is unaware."
+  },
+  {
+    "rule_id": "RSK-1d",
+    "practice_area": "RSK",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is a risk appetite or tolerance threshold defined at the organisational or project level?",
+    "gap_text": "Observation: Without a defined risk appetite there is no consistent basis for escalation decisions."
+  },
+  {
+    "rule_id": "RSK-2",
+    "practice_area": "RSK",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Does every high and critical risk have a documented mitigation plan with an owner and a target date?",
+    "gap_text": "Gap: Risks identified but not mitigated. The register is a list of known problems, not a managed programme."
+  },
+  {
+    "rule_id": "RSK-2a",
+    "practice_area": "RSK",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are mitigation actions tracked to closure with evidence of completion?",
+    "gap_text": "Gap: Mitigation plans remain on paper. No evidence actions were taken."
+  },
+  {
+    "rule_id": "RSK-2b",
+    "practice_area": "RSK",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are contingency plans defined for risks that cannot be fully mitigated?",
+    "gap_text": "Gap: No fallback plan if the risk materialises. Response will be ad hoc."
+  },
+  {
+    "rule_id": "MPM-G1",
+    "practice_area": "MPM",
+    "level": "L1-Gate",
+    "is_gate": true,
+    "is_check": false,
+    "is_probe": false,
+    "audit_check": "Locate the Measurement Plan, KPI Dashboard or Data Collection Sheet. Does it exist?",
+    "gap_text": "Gap: Performance not measured. Management decisions are being made without objective data."
+  },
+  {
+    "rule_id": "MPM-1",
+    "practice_area": "MPM",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Are measurement objectives derived from and traceable to business objectives?",
+    "gap_text": "Gap: Measures are collected that do not support business decisions."
+  },
+  {
+    "rule_id": "MPM-1a",
+    "practice_area": "MPM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Does each measure have an operational definition: what is measured, how, when, by whom and in what unit?",
+    "gap_text": "Gap: Without operational definitions, the same measure will be collected inconsistently across periods."
+  },
+  {
+    "rule_id": "MPM-1b",
+    "practice_area": "MPM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are performance targets or thresholds defined for each measure?",
+    "gap_text": "Gap: Without targets there is no basis for determining whether performance is acceptable."
+  },
+  {
+    "rule_id": "MPM-2",
+    "practice_area": "MPM",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Are planned versus actual values tracked for effort, cost and schedule together in every reporting period?",
+    "gap_text": "Gap: Tracking only one dimension (for example effort only) gives an incomplete picture of project health."
+  },
+  {
+    "rule_id": "MPM-2a",
+    "practice_area": "MPM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are deviations from plan (greater than 10 percent) formally investigated and recorded?",
+    "gap_text": "Gap: Significant variances go unanalysed. Corrective action is not triggered."
+  },
+  {
+    "rule_id": "MPM-2b",
+    "practice_area": "MPM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are measurement data and results stored in a repository to enable trend analysis over time?",
+    "gap_text": "Gap: Historical data not retained. Trend analysis and benchmarking are not possible."
+  },
+  {
+    "rule_id": "MPM-3",
+    "practice_area": "MPM",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Are performance results reviewed at defined frequency with corrective actions taken when targets are missed?",
+    "gap_text": "Gap: Metrics collected but not reviewed or acted upon."
+  },
+  {
+    "rule_id": "MPM-3a",
+    "practice_area": "MPM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are performance review meetings documented with decisions and action items recorded?",
+    "gap_text": "Gap: Reviews occur but no records kept. Decisions are unaccountable."
+  },
+  {
+    "rule_id": "MPM-3b",
+    "practice_area": "MPM",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are performance results communicated to all relevant stakeholders at defined frequency?",
+    "gap_text": "Observation: Performance visibility limited to the project team. Stakeholders are uninformed."
+  },
+  {
+    "rule_id": "DAR-G1",
+    "practice_area": "DAR",
+    "level": "L1-Gate",
+    "is_gate": true,
+    "is_check": false,
+    "is_probe": false,
+    "audit_check": "Locate DAR records for critical decisions in the project (vendor selection, technology choice, architecture approach, tool selection). Do they exist?",
+    "gap_text": "Gap: Critical decisions made informally without documented rationale. Decisions cannot be audited or reversed with justification."
+  },
+  {
+    "rule_id": "DAR-1",
+    "practice_area": "DAR",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Does each DAR record contain: decision context, evaluation criteria with weights, alternatives considered, scores per alternative and final decision with rationale?",
+    "gap_text": "Gap: Incomplete decision records cannot be audited and do not protect the organisation from future challenge."
+  },
+  {
+    "rule_id": "DAR-1a",
+    "practice_area": "DAR",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Were all plausible alternatives documented before the evaluation began?",
+    "gap_text": "Gap: Decision made before evaluating all relevant options. The outcome may not be optimal."
+  },
+  {
+    "rule_id": "DAR-1b",
+    "practice_area": "DAR",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Were affected stakeholders involved in defining the evaluation criteria?",
+    "gap_text": "Gap: Criteria set by a single person. The evaluation is not representative and may be biased."
+  },
+  {
+    "rule_id": "DAR-1c",
+    "practice_area": "DAR",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Was the decision approved by the role defined in the decision authority matrix?",
+    "gap_text": "Gap: Decision made below the required authority level."
+  },
+  {
+    "rule_id": "DAR-1d",
+    "practice_area": "DAR",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are rules documented to define when a formal DAR process is mandatory (cost threshold, risk level, strategic impact)?",
+    "gap_text": "Observation: Without trigger rules, it is left to individual judgement whether DAR is applied."
+  },
+  {
+    "rule_id": "GOV-G1",
+    "practice_area": "GOV",
+    "level": "L1-Gate",
+    "is_gate": true,
+    "is_check": false,
+    "is_probe": false,
+    "audit_check": "Locate Governance artefacts: Organisational Process Directives, Management Review Minutes, Performance Reports to senior management. Do they exist?",
+    "gap_text": "Gap: No governance evidence found. Senior management is not engaged in process oversight."
+  },
+  {
+    "rule_id": "GOV-1",
+    "practice_area": "GOV",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Is there evidence that senior management reviews project and organisational performance data at defined frequency?",
+    "gap_text": "Gap: Management reviews are not occurring. Strategic oversight is absent."
+  },
+  {
+    "rule_id": "GOV-1a",
+    "practice_area": "GOV",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are management review minutes documented with decisions, action items and owners?",
+    "gap_text": "Gap: Management reviews occur but produce no documented outcomes. Decisions are unaccountable."
+  },
+  {
+    "rule_id": "GOV-1b",
+    "practice_area": "GOV",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are escalated risks and quality issues acted upon by management within defined timeframes?",
+    "gap_text": "Gap: Escalations are not acknowledged or acted upon. Escalation process is ineffective."
+  },
+  {
+    "rule_id": "GOV-2",
+    "practice_area": "GOV",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Are organisational process directives (policies, standards and mandatory procedures) documented, communicated and kept current?",
+    "gap_text": "Gap: Staff are unaware of mandatory processes. Compliance cannot be expected or enforced."
+  },
+  {
+    "rule_id": "GOV-2a",
+    "practice_area": "GOV",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are directives reviewed when business objectives, regulations or the technology environment change?",
+    "gap_text": "Gap: Outdated directives may mandate obsolete practices or miss new compliance requirements."
+  },
+  {
+    "rule_id": "GOV-2b",
+    "practice_area": "GOV",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Where project-level tailoring of standard processes has occurred, is the tailoring formally approved and documented?",
+    "gap_text": "Gap: Unapproved tailoring means the project is deviating from standards without authorisation."
+  },
+  {
+    "rule_id": "PQA-G1",
+    "practice_area": "PQA",
+    "level": "L1-Gate",
+    "is_gate": true,
+    "is_check": false,
+    "is_probe": false,
+    "audit_check": "Locate the QA Plan and audit schedule. Do they exist and are they approved?",
+    "gap_text": "Gap: No QA plan or schedule found. Quality assurance is ad hoc."
+  },
+  {
+    "rule_id": "PQA-1",
+    "practice_area": "PQA",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Does the audit schedule cover all key process areas: requirements, planning, development, testing, CM, release and supplier management?",
+    "gap_text": "Gap: Partial audit coverage leaves process gaps undetected."
+  },
+  {
+    "rule_id": "PQA-1a",
+    "practice_area": "PQA",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are audits conducted by someone independent of the work being audited?",
+    "gap_text": "Gap: Self-audit has no independent value. Independence is a fundamental principle of quality assurance."
+  },
+  {
+    "rule_id": "PQA-1b",
+    "practice_area": "PQA",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Is the audit schedule followed? If not, are deviations from schedule documented and rescheduled?",
+    "gap_text": "Gap: Audits missed without rescheduling leave process areas uncovered."
+  },
+  {
+    "rule_id": "PQA-G2",
+    "practice_area": "PQA",
+    "level": "L1-Gate",
+    "is_gate": true,
+    "is_check": false,
+    "is_probe": false,
+    "audit_check": "Locate audit reports and non-conformance or finding logs from the current audit cycle. Do they exist?",
+    "gap_text": "Gap: Audits conducted but reports not produced or retained. Audit output cannot be acted upon."
+  },
+  {
+    "rule_id": "PQA-2",
+    "practice_area": "PQA",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Are findings formally logged with: severity, description, owner, due date and closure evidence?",
+    "gap_text": "Gap: Findings raised informally without records cannot be tracked or re-verified."
+  },
+  {
+    "rule_id": "PQA-2a",
+    "practice_area": "PQA",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are findings closed within the defined timeframe?",
+    "gap_text": "Gap: Overdue findings indicate poor process discipline or insufficient management support."
+  },
+  {
+    "rule_id": "PQA-2b",
+    "practice_area": "PQA",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are unresolved findings escalated to senior management?",
+    "gap_text": "Gap: Unescalated findings persist indefinitely without management awareness."
+  },
+  {
+    "rule_id": "PQA-2c",
+    "practice_area": "PQA",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are repeat findings from previous audit cycles identified and highlighted?",
+    "gap_text": "Gap: Repeat findings indicate that previous corrective actions were ineffective or not implemented."
+  },
+  {
+    "rule_id": "PQA-2d",
+    "practice_area": "PQA",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are senior management regularly presented with QA results and do they acknowledge and act on them?",
+    "gap_text": "Gap: QA results not reviewed by management. Process quality is not a management priority."
+  },
+  {
+    "rule_id": "OT-G1",
+    "practice_area": "OT",
+    "level": "L1-Gate",
+    "is_gate": true,
+    "is_check": false,
+    "is_probe": false,
+    "audit_check": "Locate the Organisational Training Plan and Training Records. Do they exist?",
+    "gap_text": "Gap: No training plan or records found. Organisational training is unmanaged."
+  },
+  {
+    "rule_id": "OT-1",
+    "practice_area": "OT",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Are training needs formally identified, linked to role competency requirements and documented in a training plan?",
+    "gap_text": "Gap: Training is ad hoc. Competency gaps are not being systematically addressed."
+  },
+  {
+    "rule_id": "OT-1a",
+    "practice_area": "OT",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Does the training plan cover both strategic (long-term) and short-term training needs?",
+    "gap_text": "Observation: Training plan is only operational. Long-term capability building is not addressed."
+  },
+  {
+    "rule_id": "OT-1b",
+    "practice_area": "OT",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are training needs for new technologies, regulatory changes and AI tools addressed in the plan?",
+    "gap_text": "Gap: Training plan does not reflect the evolving technology and regulatory landscape."
+  },
+  {
+    "rule_id": "OT-2",
+    "practice_area": "OT",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Is training delivered per the plan and are attendance or completion records maintained?",
+    "gap_text": "Gap: Training planned but not evidenced as delivered. Staff may not have received required training."
+  },
+  {
+    "rule_id": "OT-2a",
+    "practice_area": "OT",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are training records accessible and do they capture: course name, date, attendee name, completion status and assessment result?",
+    "gap_text": "Gap: Incomplete training records cannot be used for compliance, audit or gap analysis."
+  },
+  {
+    "rule_id": "OT-3",
+    "practice_area": "OT",
+    "level": "L3-Check",
+    "is_gate": false,
+    "is_check": true,
+    "is_probe": false,
+    "audit_check": "Is training effectiveness assessed through post-training evaluation, assessments or manager feedback?",
+    "gap_text": "Observation: Training delivered but effectiveness not measured. Low-quality training is not identified."
+  },
+  {
+    "rule_id": "OT-3a",
+    "practice_area": "OT",
+    "level": "L4-Probe",
+    "is_gate": false,
+    "is_check": false,
+    "is_probe": true,
+    "audit_check": "Are effectiveness assessment results used to improve the training content and delivery?",
+    "gap_text": "Observation: Effectiveness data collected but not used to improve the training programme."
+  }
+]

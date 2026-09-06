@@ -252,14 +252,20 @@ function validateCheckOrProbeRule(rule, documentText, classificationResult) {
 // Returns { originalFileName, detectedDocType, confidence, practiceAreas,
 // totalRulesChecked, foundCount, partialCount, missingCount, unknownCount,
 // results }. Never throws.
-export function validateEvidence(documentText, classificationResult) {
+export function validateEvidence(documentText, classificationResult, ruleCatalog) {
   const practiceAreas = classificationResult.practiceAreas || []
-  const rules = RULE_CHECKLIST.filter(rule => practiceAreas.includes(rule.practiceArea))
+  const catalogueRules = ruleCatalog?.rules?.length ? ruleCatalog.rules : RULE_CHECKLIST
+  const rules = catalogueRules.filter(rule => practiceAreas.includes(rule.practiceArea))
+  const excludedRole = ['TEMPLATE', 'BLANK_TEMPLATE', 'PROCESS_REFERENCE', 'DUPLICATE', 'SUPERSEDED_VERSION'].includes(classificationResult.documentRole)
 
   const results = rules.map(rule => {
     let status, foundEvidence, missingEvidence
 
-    if (rule.isGate) {
+    if (excludedRole) {
+      status = 'NOT_APPLICABLE'
+      foundEvidence = []
+      missingEvidence = []
+    } else if (rule.isGate) {
       status = validateGateRule(classificationResult)
       foundEvidence = []
       missingEvidence = []
@@ -290,6 +296,7 @@ export function validateEvidence(documentText, classificationResult) {
     originalFileName: classificationResult.originalFileName,
     detectedDocType: classificationResult.detectedType,
     confidence: classificationResult.confidence,
+    documentRole: classificationResult.documentRole,
     practiceAreas,
     totalRulesChecked: results.length,
     foundCount: results.filter(r => r.status === 'FOUND').length,

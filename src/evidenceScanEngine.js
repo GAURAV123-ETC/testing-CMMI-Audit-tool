@@ -204,7 +204,7 @@ export async function runEvidenceScan(scan, { onProgress } = {}) {
 // runEvidenceScan()'s callers extract via buildDocumentRow() above; this
 // function is a thin pass-through into evidenceScanOrchestrator.js so the
 // UI only needs one import site (this module) for both scan pipelines.
-export async function runNewCMMIScan(uploadedFiles, projectName) {
+export async function runNewCMMIScan(uploadedFiles, projectName, ruleCatalog) {
   const { runCMMIAuditScan } = await import('./evidenceScanOrchestrator')
-  return await runCMMIAuditScan(uploadedFiles, projectName)
+  return await runCMMIAuditScan(uploadedFiles, projectName, ruleCatalog)
 }

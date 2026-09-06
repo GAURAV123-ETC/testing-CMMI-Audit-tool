@@ -16,6 +16,7 @@ function buildClassificationRow(fileResult) {
     confidence: fileResult.confidence,
     confidenceScore: fileResult.confidenceScore,
     classificationReason: fileResult.classificationReason || '',
+    documentRole: fileResult.documentRole || '',
     practiceAreas: fileResult.practiceAreas,
     totalRulesChecked: fileResult.totalRulesChecked,
     foundCount: fileResult.foundCount,
@@ -70,11 +71,56 @@ function buildEvidenceGapRows(fileResult) {
     }))
 }
 
+// A rule is evaluated at project scope, not once per file. Multiple documents
+// can jointly support an assertion, and a weak/empty copy of an artefact must
+// not turn a control into a false gap when another accepted copy supports it.
+function buildProjectRuleResults(allValidationResults) {
+  const errors = allValidationResults.filter(result => result.status === 'ERROR').flatMap(buildEvidenceGapRows)
+  const candidates = new Map()
+  const rank = { NOT_APPLICABLE: -1, MISSING: 0, PARTIAL: 1, FOUND: 2 }
+
+  for (const fileResult of allValidationResults) {
+    if (fileResult.status === 'ERROR') continue
+    for (const result of fileResult.results || []) {
+      const current = candidates.get(result.ruleId)
+      const score = rank[result.status] ?? -1
+      if (!current) {
+        candidates.set(result.ruleId, { ...result, sourceFiles: [result.originalFileName], sourceTypes: [result.detectedDocType], _rank: score })
+        continue
+      }
+      current.sourceFiles = [...new Set([...current.sourceFiles, result.originalFileName])]
+      current.sourceTypes = [...new Set([...current.sourceTypes, result.detectedDocType])]
+      if (score > current._rank) {
+        const provenance = { sourceFiles: current.sourceFiles, sourceTypes: current.sourceTypes }
+        Object.assign(current, result, provenance, { _rank: score })
+      }
+    }
+  }
+
+  const rules = [...candidates.values()]
+  const gateByPa = new Map(rules.filter(rule => rule.level === 'L1-Gate').map(rule => [rule.practiceArea, rule.status]))
+  for (const rule of rules) {
+    if (rule.level === 'L1-Gate' || !['MISSING', 'NOT_APPLICABLE'].includes(gateByPa.get(rule.practiceArea))) continue
+    rule.status = 'BLOCKED'
+    rule.foundEvidence = []
+    rule.missingEvidence = ['Required gate artefact']
+    rule.gapText = `Blocked: ${rule.gapText || 'The required gate artefact was not accepted.'}`
+    rule.recommendation = 'Provide and classify the required gate artefact before assessing this downstream control.'
+  }
+
+  const normalized = rules.map(rule => ({
+    ...rule,
+    originalFileName: rule.sourceFiles.join('; '),
+    detectedDocType: rule.sourceTypes.join('; '),
+  }))
+  return { rules: normalized, errors }
+}
+
 function emptyPaTally() {
   return { found: 0, partial: 0, missing: 0, total: 0 }
 }
 
-function buildGapSummary(allValidationResults) {
+function buildGapSummary(allValidationResults, projectRules = []) {
   const summary = {
     totalFiles: allValidationResults.length,
     totalRulesChecked: 0,
@@ -88,12 +134,6 @@ function buildGapSummary(allValidationResults) {
   }
 
   for (const fileResult of allValidationResults) {
-    summary.totalRulesChecked += fileResult.totalRulesChecked
-    summary.totalFound += fileResult.foundCount
-    summary.totalPartial += fileResult.partialCount
-    summary.totalMissing += fileResult.missingCount
-    summary.totalUnknown += fileResult.unknownCount
-
     const gapCount = fileResult.partialCount + fileResult.missingCount
     summary.byFile[fileResult.originalFileName] = {
       detectedType: fileResult.detectedDocType,
@@ -104,14 +144,17 @@ function buildGapSummary(allValidationResults) {
       status: fileResult.status === 'ERROR' ? 'ERROR' : 'OK',
     }
 
-    for (const r of fileResult.results) {
-      if (!summary.byPracticeArea[r.practiceArea]) summary.byPracticeArea[r.practiceArea] = emptyPaTally()
-      const tally = summary.byPracticeArea[r.practiceArea]
-      tally.total += 1
-      if (r.status === 'FOUND') tally.found += 1
-      else if (r.status === 'PARTIAL') tally.partial += 1
-      else if (r.status === 'MISSING') tally.missing += 1
-    }
+  }
+
+  for (const rule of projectRules) {
+    if (!summary.byPracticeArea[rule.practiceArea]) summary.byPracticeArea[rule.practiceArea] = emptyPaTally()
+    const tally = summary.byPracticeArea[rule.practiceArea]
+    tally.total += 1
+    summary.totalRulesChecked += 1
+    if (rule.status === 'FOUND') { tally.found += 1; summary.totalFound += 1 }
+    else if (rule.status === 'PARTIAL') { tally.partial += 1; summary.totalPartial += 1 }
+    else if (rule.status === 'MISSING' || rule.status === 'BLOCKED') { tally.missing += 1; summary.totalMissing += 1 }
+    else if (rule.status === 'UNKNOWN') summary.totalUnknown += 1
   }
 
   summary.totalGaps = summary.totalPartial + summary.totalMissing
@@ -120,9 +163,13 @@ function buildGapSummary(allValidationResults) {
 
 // Returns { classificationReport, evidenceGapReport, gapSummary }.
 export function generateGapReport(allValidationResults) {
+  const projectEvaluation = buildProjectRuleResults(allValidationResults)
   return {
     classificationReport: allValidationResults.map(buildClassificationRow),
-    evidenceGapReport: allValidationResults.flatMap(buildEvidenceGapRows),
-    gapSummary: buildGapSummary(allValidationResults),
+    evidenceGapReport: [
+      ...projectEvaluation.errors,
+      ...projectEvaluation.rules.filter(rule => ['PARTIAL', 'MISSING', 'BLOCKED'].includes(rule.status)),
+    ],
+    gapSummary: buildGapSummary(allValidationResults, projectEvaluation.rules),
   }
 }

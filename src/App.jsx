@@ -24,9 +24,10 @@ import { parseGithubRepoInput, scanGithubRepo } from './githubConnector'
 import { isSharePointConfigured, signIn as signInSharePoint, scanSharePointFolder } from './sharepointConnector'
 import { isGoogleDriveConfigured, requestAccessToken as requestGoogleAccessToken, openPicker as openGoogleDrivePicker, scanGoogleDriveFolder } from './googleDriveConnector'
 import { downloadAFRExcel, downloadAFRWord, buildDetailedFindingsRows } from './afrExport'
-import { runEvidenceScan, runNewCMMIScan, SUPPORTED_EVIDENCE_EXTS } from './evidenceScanEngine'
+import { runNewCMMIScan } from './evidenceScanEngine'
 import { extractDocumentText, getExt } from './documentTextExtraction'
 import CMMIScanResults from './components/CMMIScanResults'
+import { importMasterRuleCatalog } from './ruleCatalog'
 import { DEFAULT_FILTERS, applyDashboardFilters, isFiltersActive } from './dashboardFilters'
 import {
   CORE_PRACTICE_AREAS, DOMAINS, PRACTICE_AREAS, CORE_PAS, PA_DOMAIN,
@@ -179,7 +180,7 @@ const GAP_DATA = {
     {control:'RSK 3.1',name:'Risk mitigation plans',status:'compliant',desc:'Mitigation plans defined for all high-priority risks'},
     {control:'RSK 3.2',name:'Monitor risks',status:'compliant',desc:'Weekly risk review integrated into project status meetings'},
   ],
-  SAM: [
+  SAM_CORE: [
     {control:'SAM 2.1',name:'Establish supplier agreements',status:'compliant',desc:'Formal contracts in place for all critical suppliers'},
     {control:'SAM 3.1',name:'Review supplier performance',status:'compliant',desc:'Quarterly supplier reviews conducted'},
     {control:'SAM 3.2',name:'Manage supplier agreements',status:'compliant',desc:'Agreement changes tracked with amendment log'},
@@ -3430,12 +3431,15 @@ function EvidenceKeywordChips({ keywords, tone }) {
   )
 }
 
-function EvidenceScan({ evidenceScanRows, setEvidenceScanRows, auditMeta, paReports, ncStore, commentsStore, pkgAvailability, irpIssueLog, irpDataValidation, irpAuditResult, cmmiScanResult, setCmmiScanResult }) {
+function EvidenceScan({ setEvidenceScanRows, cmmiScanResult, setCmmiScanResult }) {
   const [scanning, setScanning] = useState(false)
   const [progress, setProgress] = useState(null)
   const [error, setError] = useState('')
   const [rootName, setRootName] = useState('')
   const fileInputRef = useRef(null)
+  const masterInputRef = useRef(null)
+  const [ruleCatalog, setRuleCatalog] = useState(null)
+  const [catalogWarnings, setCatalogWarnings] = useState([])
   // Kept so the new "Run CMMI Audit Scan" button can reuse the same
   // uploaded files without asking the user to upload again — the existing
   // runEvidenceScan() flow below never stored the raw scan itself.
@@ -3445,19 +3449,10 @@ function EvidenceScan({ evidenceScanRows, setEvidenceScanRows, auditMeta, paRepo
 
   const runScan = async (rawScan) => {
     setError('')
-    setScanning(true)
-    setProgress({ done: 0, total: 0, currentFile: '' })
     setLastRawScan(rawScan)
-    try {
-      const result = await runEvidenceScan(rawScan, { onProgress: setProgress })
-      setEvidenceScanRows(result.rows)
-      setRootName(rawScan.rootName)
-    } catch (e) {
-      setError(e.message || 'Could not complete the evidence scan. Please try again.')
-    } finally {
-      setScanning(false)
-      setProgress(null)
-    }
+    setRootName(rawScan.rootName)
+    setEvidenceScanRows([]) // legacy AFR-only rows must not drive this rules-based scan
+    setCmmiScanResult(null)
   }
 
   // Reuses the already-uploaded files (lastRawScan, from the folder upload
@@ -3473,16 +3468,20 @@ function EvidenceScan({ evidenceScanRows, setEvidenceScanRows, auditMeta, paRepo
   // no file may vanish without a trace in the Classification tab / Gap
   // Summary file count).
   const runNewCMMIScanHandler = async () => {
-    if (!lastRawScan) return
+    if (!lastRawScan || !ruleCatalog) return
     setCmmiError('')
     setCmmiScanning(true)
+    setProgress({ done: 0, total: lastRawScan.files.length, currentFile: '' })
     try {
       const uploadedFiles = []
-      for (const entry of lastRawScan.files) {
+      for (let i = 0; i < lastRawScan.files.length; i += 1) {
+        const entry = lastRawScan.files[i]
+        setProgress({ done: i, total: lastRawScan.files.length, currentFile: entry.name })
         const extraction = await extractDocumentText(entry)
         uploadedFiles.push({
           fileName: entry.name,
           text: extraction.text || '',
+          structure: extraction.structure,
           status: extraction.status === 'ERROR' ? 'ERROR' : 'OK',
           errorReason: extraction.status === 'ERROR' ? (extraction.errorReason || extraction.error || 'Unknown error') : undefined,
           // Only set for format-level rejections (legacy .doc/.ppt) — see
@@ -3493,14 +3492,33 @@ function EvidenceScan({ evidenceScanRows, setEvidenceScanRows, auditMeta, paRepo
           detectedType: extraction.status === 'ERROR' ? extraction.detectedType : undefined,
           confidence: extraction.status === 'ERROR' ? extraction.confidence : undefined,
         })
+        setProgress({ done: i + 1, total: lastRawScan.files.length, currentFile: entry.name })
       }
-      const projectName = (auditMeta && auditMeta.projectName) || rootName || 'CMMI Audit Project'
-      const result = await runNewCMMIScan(uploadedFiles, projectName)
+      const projectName = rootName || 'Evidence Scan'
+      const result = await runNewCMMIScan(uploadedFiles, projectName, ruleCatalog)
       setCmmiScanResult(result)
     } catch (e) {
       setCmmiError(e.message || 'Could not complete the CMMI audit scan. Please try again.')
     } finally {
       setCmmiScanning(false)
+      setProgress(null)
+    }
+  }
+
+  const handleMasterWorkbook = async (e) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setError('')
+    try {
+      const imported = await importMasterRuleCatalog(file)
+      setRuleCatalog(imported.catalog)
+      setCatalogWarnings(imported.validation.warnings)
+      setCmmiScanResult(null)
+    } catch (err) {
+      setRuleCatalog(null)
+      setCatalogWarnings([])
+      setError(err.message || 'Could not import the master rules workbook.')
     }
   }
 
@@ -3531,13 +3549,9 @@ function EvidenceScan({ evidenceScanRows, setEvidenceScanRows, auditMeta, paRepo
     setEvidenceScanRows([])
     setRootName('')
     setError('')
-  }
-
-  const projects = []
-  const byProject = new Map()
-  for (const row of evidenceScanRows) {
-    if (!byProject.has(row.project)) { byProject.set(row.project, []); projects.push(row.project) }
-    byProject.get(row.project).push(row)
+    setLastRawScan(null)
+    setCmmiScanResult(null)
+    setCmmiError('')
   }
 
   return (
@@ -3546,13 +3560,16 @@ function EvidenceScan({ evidenceScanRows, setEvidenceScanRows, auditMeta, paRepo
         <div>
           <h2 style={{ fontSize: 18, fontWeight: 500 }}>Evidence Scan</h2>
           <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 2 }}>
+            Import the CMMI master rules workbook, then scan a project evidence folder. This independent evidence-readiness scan does not use an audit session.
+          </div>
+          <div style={{ display: 'none' }}>
             Upload a parent folder containing multiple project folders — every document is scanned (with OCR for scanned PDFs/images) and matched against the IRP, PLAN, RSK and RDM keyword lists, independently per project
           </div>
         </div>
-        {evidenceScanRows.length > 0 && !scanning && (
+        {lastRawScan && !scanning && (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button className="btn" onClick={resetScan}><IconTrash size={14} /> Clear / New Scan</button>
-            <button className="btn btn-primary" onClick={runNewCMMIScanHandler} disabled={cmmiScanning}>
+            <button className="btn btn-primary" onClick={runNewCMMIScanHandler} disabled={cmmiScanning || !ruleCatalog} title={!ruleCatalog ? 'Import the master rules workbook first.' : undefined}>
               {cmmiScanning ? <span className="spinner" /> : <IconFileSearch size={14} />}
               {cmmiScanning ? 'Running CMMI Audit Scan…' : 'Run CMMI Audit Scan'}
             </button>
@@ -3561,11 +3578,19 @@ function EvidenceScan({ evidenceScanRows, setEvidenceScanRows, auditMeta, paRepo
       </div>
 
       <div className="card" style={{ marginBottom: '1.5rem' }}>
-        <div className="section-title">Upload Project Documents Folder</div>
+        <div className="section-title">1. Import master rules catalogue</div>
         <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 12 }}>
           Recursively scans every project subfolder and file — Excel (.xlsx), Word (.docx), PDF (including scanned/OCR), PNG and JPG. Each top-level subfolder is treated as one project and scanned independently — an empty project folder never affects another project's results.
         </div>
 
+        <input ref={masterInputRef} type="file" accept=".xlsx,.xls" style={{ display: 'none' }} onChange={handleMasterWorkbook} />
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
+          <button className="btn" onClick={() => masterInputRef.current?.click()}><IconFile size={14} /> {ruleCatalog ? 'Replace master workbook' : 'Select master workbook'}</button>
+          {ruleCatalog ? <span className="badge badge-success">{ruleCatalog.ruleSetVersion.sourceFileName} · {ruleCatalog.rules.length} rules · {ruleCatalog.documentTypes.length} evidence types</span> : <span className="badge badge-warning">Master workbook required</span>}
+        </div>
+        {catalogWarnings.map((warning, index) => <div key={index} style={{ fontSize: 11, color: '#92400E', marginTop: 7 }}>{warning}</div>)}
+
+        <div className="section-title" style={{ marginTop: 18 }}>2. Select project evidence</div>
         <div style={{
           display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12, color: '#92400E',
           background: '#FEF3C7', border: '1px solid #FDE68A', borderRadius: 'var(--border-radius-md)',
@@ -3578,7 +3603,7 @@ function EvidenceScan({ evidenceScanRows, setEvidenceScanRows, auditMeta, paRepo
           </span>
         </div>
 
-        {!scanning && evidenceScanRows.length === 0 && (
+        {!scanning && !lastRawScan && (
           <>
             <input ref={fileInputRef} type="file" multiple webkitdirectory="" style={{ display: 'none' }} onChange={handleFileInput} />
             <div className="upload-zone" onClick={() => fileInputRef.current.click()}>
@@ -3593,7 +3618,7 @@ function EvidenceScan({ evidenceScanRows, setEvidenceScanRows, auditMeta, paRepo
           </>
         )}
 
-        {scanning && (
+        {cmmiScanning && (
           <div style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>
             Scanning{progress && progress.total ? ` — ${progress.done} / ${progress.total} files` : '…'}
             {progress && progress.currentFile ? ` (${progress.currentFile})` : ''}
@@ -3607,7 +3632,21 @@ function EvidenceScan({ evidenceScanRows, setEvidenceScanRows, auditMeta, paRepo
         {error && <div style={{ fontSize: 12, color: '#E24B4A', marginTop: 10 }}>{error}</div>}
       </div>
 
-      {evidenceScanRows.length > 0 && (
+      {lastRawScan && (
+        <>
+          <div className="card" style={{ marginBottom: '1rem' }}>
+            <div className="section-title" style={{ marginBottom: 4 }}>Evidence source</div>
+            <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>
+              {rootName || 'Selected folder'} · {lastRawScan.files.length} file{lastRawScan.files.length === 1 ? '' : 's'} queued
+              {ruleCatalog ? ` · Ruleset: ${ruleCatalog.ruleSetVersion.version}` : ''}
+            </div>
+          </div>
+          {cmmiError && <div style={{ fontSize: 12, color: '#E24B4A', marginBottom: 10 }}>{cmmiError}</div>}
+          <CMMIScanResults cmmiScanResult={cmmiScanResult} />
+        </>
+      )}
+
+      {false && (
         <>
           <div className="card" style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
@@ -4111,7 +4150,7 @@ export default function App() {
         {activeTab==='dashboard'     && <Dashboard switchTab={switchTab} addChatMessage={addChatMessage} scanResults={scanResults} paReports={paReports} ncStore={ncStore} commentsStore={commentsStore} pkgAvailability={pkgAvailability} irpIssueLog={irpIssueLog} irpDataValidation={irpDataValidation} irpAuditResult={irpAuditResult} onOpenGapReport={openGapReport} auditMeta={auditMeta} evidenceScanRows={evidenceScanRows}/>}
         {activeTab==='repository'    && <Repository switchTab={switchTab} addChatMessage={addChatMessage} setScanResults={setScanResults} scanResults={scanResults}/>}
         {activeTab==='pa-validation' && <PAValidation paReports={paReports} setPaReports={setPaReports} ncStore={ncStore} setNcStore={setNcStore} auditMeta={auditMeta} onAuditMetaSubmit={setAuditMeta} commentsStore={commentsStore} setCommentsStore={setCommentsStore} pkgAvailability={pkgAvailability} setPkgAvailability={setPkgAvailability} irpIssueLog={irpIssueLog} setIrpIssueLog={setIrpIssueLog} irpDataValidation={irpDataValidation} setIrpDataValidation={setIrpDataValidation} irpAuditResult={irpAuditResult} setIrpAuditResult={setIrpAuditResult} evidenceScanRows={evidenceScanRows}/>}
-        {activeTab==='evidence-scan' && <EvidenceScan evidenceScanRows={evidenceScanRows} setEvidenceScanRows={setEvidenceScanRows} auditMeta={auditMeta} paReports={paReports} ncStore={ncStore} commentsStore={commentsStore} pkgAvailability={pkgAvailability} irpIssueLog={irpIssueLog} irpDataValidation={irpDataValidation} irpAuditResult={irpAuditResult} cmmiScanResult={cmmiScanResult} setCmmiScanResult={setCmmiScanResult}/>}
+        {activeTab==='evidence-scan' && <EvidenceScan setEvidenceScanRows={setEvidenceScanRows} cmmiScanResult={cmmiScanResult} setCmmiScanResult={setCmmiScanResult}/>}
         {activeTab==='gaps'          && <GapAnalysis switchTab={switchTab} addChatMessage={addChatMessage} paReports={paReports} initialPA={gapFocusPA} auditMeta={auditMeta}/>}
         {activeTab==='correlation' && <CorrelationMap switchTab={switchTab} addChatMessage={addChatMessage}/>}
         {activeTab==='chatbot'     && <Chatbot messages={chatMessages} setMessages={setChatMessages} pendingMessage={pendingMessage} setPendingMessage={setPendingMessage}/>}

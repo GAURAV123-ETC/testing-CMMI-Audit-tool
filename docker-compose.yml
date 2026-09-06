@@ -1,0 +1,42 @@
+services:
+  app:
+    build: .
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-cmmi_audit}
+      DB_USER: cmmi
+      DB_PASSWORD: ${DB_PASSWORD:-change-me}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
+    ports: ["8080:8080"]
+    depends_on: { mysql: { condition: service_healthy } }
+    volumes: [uploads:/data/uploads, reports:/data/reports, templates:/data/templates]
+    networks: [default, internal]
+    restart: unless-stopped
+    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/api/docs')"], interval: 30s, timeout: 5s, retries: 5 }
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-cmmi_audit}
+      MYSQL_USER: cmmi
+      MYSQL_PASSWORD: ${DB_PASSWORD:-change-me}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change-root-password}
+    volumes: [mysql_data:/var/lib/mysql]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD:-change-root-password}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [internal]
+volumes:
+  mysql_data: {}
+  uploads: {}
+  reports: {}
+  templates: {}
+networks:
+  internal:
+    internal: true

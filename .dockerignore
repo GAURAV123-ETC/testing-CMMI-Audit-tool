@@ -1,0 +1,11 @@
+.git
+.github
+node_modules
+dist
+cmmi-audit
+src
+scripts
+*.db
+__pycache__
+.pytest_cache
+.env

@@ -1,0 +1,568 @@
+[
+  {
+    "document_type": "Project Charter / Initiation Document",
+    "practice_areas": [
+      "PLAN",
+      "Project Management"
+    ],
+    "keywords": [
+      "Scope",
+      "objectives",
+      "stakeholders",
+      "dates",
+      "deliverables",
+      "approvals"
+    ],
+    "expected_evidence": "Approved charter; stakeholder details; scope baseline"
+  },
+  {
+    "document_type": "SOW / Contract / Agreement/RFP(request for proposal)",
+    "practice_areas": [
+      "PLAN",
+      "RDM"
+    ],
+    "keywords": [
+      "Scope of work",
+      "deliverables",
+      "milestones",
+      "responsibilities",
+      "acceptance criteria",
+      "SLAs"
+    ],
+    "expected_evidence": "Signed SOW/contract and amendments"
+  },
+  {
+    "document_type": "Project Management Plan / Project Plan",
+    "practice_areas": [
+      "PLAN"
+    ],
+    "keywords": [
+      "Scope",
+      "3. Organization Responsibilities",
+      "4. Project Organization Structure:",
+      "schedule",
+      "effort",
+      "resources",
+      "milestones",
+      "risks",
+      "communication",
+      "approvals",
+      "objectives",
+      "deliverables",
+      "estimation",
+      "effort sizing",
+      "project organization",
+      "roles & responsibilities",
+      "milestones"
+    ],
+    "expected_evidence": "Approved/baselined project plan and revisions"
+  },
+  {
+    "document_type": "Estimation Sheet",
+    "practice_areas": [
+      "PLAN",
+      "Estimation"
+    ],
+    "keywords": [
+      "Size",
+      "effort",
+      "duration",
+      "resources",
+      "assumptions",
+      "estimation method",
+      "BOM Size Guidelines",
+      "Weightage",
+      "Estimated Effort(Hours)"
+    ],
+    "expected_evidence": "Calculation sheet; estimation approval; historical data if used"
+  },
+  {
+    "document_type": "Project Schedule",
+    "practice_areas": [
+      "PLAN"
+    ],
+    "keywords": [
+      "Tasks",
+      "PHASES & MILESTONES",
+      "dependencies",
+      "owners",
+      "baseline vs actual dates"
+    ],
+    "expected_evidence": "MS Project/Jira/Azure DevOps schedule"
+  },
+  {
+    "document_type": "BRD / SRS / Requirements Specification/RFP",
+    "practice_areas": [
+      "RDM"
+    ],
+    "keywords": [
+      "Requirement IDs",
+      "functional/non-functional requirements",
+      "acceptance criteria",
+      "priority",
+      "version",
+      "approval"
+    ],
+    "expected_evidence": "Approved requirement baseline"
+  },
+  {
+    "document_type": "Requirements Traceability Matrix (RTM)",
+    "practice_areas": [
+      "RDM",
+      "VER",
+      "VAL"
+    ],
+    "keywords": [
+      "Requirement-to-design/code/test/defect traceability",
+      "coverage",
+      "status(requirement ID",
+      "design reference",
+      "code module",
+      "test case ID",
+      "bidirectional traceability",
+      "coverage",
+      "status",
+      "source)"
+    ],
+    "expected_evidence": "Updated RTM with end-to-end links"
+  },
+  {
+    "document_type": "Risk Register",
+    "practice_areas": [
+      "RSK"
+    ],
+    "keywords": [
+      "Risk ID",
+      "probability",
+      "impact",
+      "rating",
+      "owner",
+      "mitigation",
+      "contingency",
+      "status",
+      "risk category",
+      "risk appetite",
+      "probability scale",
+      "impact scale",
+      "threshold",
+      "mitigation strategy",
+      "risk owner",
+      "review frequency"
+    ],
+    "expected_evidence": "Current risk register and review history"
+  },
+  {
+    "document_type": "Project Status / Weekly Reports/PSR",
+    "practice_areas": [
+      "MC",
+      "PLAN"
+    ],
+    "keywords": [
+      "Planned vs actual effort/schedule",
+      "milestones",
+      "risks",
+      "issues",
+      "dependencies",
+      "actions",
+      "Activities Planned for the Reporting Period:",
+      "Activities Planned for the next Reporting Period:",
+      "Status of Actionable of the previous review meeting (Non WBS Activity):",
+      "Issues for Management:"
+    ],
+    "expected_evidence": "Periodic status reports"
+  },
+  {
+    "document_type": "Project Metrics / Dashboard",
+    "practice_areas": [
+      "MC",
+      "MPM"
+    ],
+    "keywords": [
+      "Effort",
+      "schedule",
+      "defects",
+      "productivity",
+      "quality",
+      "trends",
+      "thresholds",
+      "corrective actions"
+    ],
+    "expected_evidence": "Metrics dashboard/reports"
+  },
+  {
+    "document_type": "Issue Log",
+    "practice_areas": [
+      "MC"
+    ],
+    "keywords": [
+      "Issue/action",
+      "owner",
+      "priority",
+      "due date",
+      "status",
+      "closure evidence",
+      "incident ID",
+      "reported date",
+      "severity",
+      "impacted service",
+      "status",
+      "downtime",
+      "resolution",
+      "closure date"
+    ],
+    "expected_evidence": "Updated issue/action log"
+  },
+  {
+    "document_type": "Configuration Management Plan",
+    "practice_areas": [
+      "CM"
+    ],
+    "keywords": [
+      "Configuration items",
+      "baselines",
+      "repository",
+      "versioning",
+      "access",
+      "change control"
+    ],
+    "expected_evidence": "Approved CM plan"
+  },
+  {
+    "document_type": "Git / Repository Evidence",
+    "practice_areas": [
+      "CM"
+    ],
+    "keywords": [
+      "Branches",
+      "commits",
+      "tags/releases",
+      "access",
+      "version history",
+      "baselines"
+    ],
+    "expected_evidence": "Repository history/screenshots/export"
+  },
+  {
+    "document_type": "Change Request / Change Log",
+    "practice_areas": [
+      "RDM",
+      "CM",
+      "MC"
+    ],
+    "keywords": [
+      "Change ID",
+      "reason",
+      "impact analysis",
+      "approval",
+      "implementation",
+      "testing",
+      "closure"
+    ],
+    "expected_evidence": "Approved CRs and change log"
+  },
+  {
+    "document_type": "HLD – High Level Design",
+    "practice_areas": [
+      "TS",
+      "RDM"
+    ],
+    "keywords": [
+      "Architecture",
+      "components",
+      "interfaces",
+      "data flow",
+      "technologies",
+      "requirement mapping"
+    ],
+    "expected_evidence": "Approved HLD and review evidence"
+  },
+  {
+    "document_type": "LLD – Low Level Design",
+    "practice_areas": [
+      "TS"
+    ],
+    "keywords": [
+      "Modules",
+      "classes/components",
+      "DB design",
+      "APIs",
+      "logic",
+      "error handling"
+    ],
+    "expected_evidence": "Approved LLD and review evidence"
+  },
+  {
+    "document_type": "Source Code",
+    "practice_areas": [
+      "TS",
+      "CM"
+    ],
+    "keywords": [
+      "Coding standards",
+      "version control",
+      "requirement linkage",
+      "branches/merges",
+      "static analysis"
+    ],
+    "expected_evidence": "Repository/source code evidence"
+  },
+  {
+    "document_type": "Code Review / Peer Review",
+    "practice_areas": [
+      "VER",
+      "TS"
+    ],
+    "keywords": [
+      "Reviewer",
+      "date",
+      "scope",
+      "comments",
+      "defects",
+      "corrective action",
+      "closure"
+    ],
+    "expected_evidence": "PR/MR/code review records"
+  },
+  {
+    "document_type": "Test Plan",
+    "practice_areas": [
+      "VER",
+      "VAL"
+    ],
+    "keywords": [
+      "Scope",
+      "strategy",
+      "levels",
+      "entry/exit criteria",
+      "environment",
+      "responsibilities"
+    ],
+    "expected_evidence": "Approved test plan"
+  },
+  {
+    "document_type": "Test Cases / Scenarios",
+    "practice_areas": [
+      "VER",
+      "VAL"
+    ],
+    "keywords": [
+      "Test ID",
+      "requirement mapping",
+      "steps",
+      "expected/actual result",
+      "status",
+      "tester",
+      "date"
+    ],
+    "expected_evidence": "Test case repository"
+  },
+  {
+    "document_type": "Test Execution Evidence",
+    "practice_areas": [
+      "VER"
+    ],
+    "keywords": [
+      "Execution results",
+      "pass/fail",
+      "logs/screenshots",
+      "failed test handling",
+      "retesting",
+      "regression"
+    ],
+    "expected_evidence": "Execution reports/logs"
+  },
+  {
+    "document_type": "Defect Log",
+    "practice_areas": [
+      "VER",
+      "MC"
+    ],
+    "keywords": [
+      "Defect ID",
+      "severity",
+      "priority",
+      "environment",
+      "owner",
+      "status",
+      "resolution",
+      "retest",
+      "closure"
+    ],
+    "expected_evidence": "Defect tracker/export"
+  },
+  {
+    "document_type": "UAT / Customer Acceptance",
+    "practice_areas": [
+      "VAL"
+    ],
+    "keywords": [
+      "UAT scenarios",
+      "acceptance criteria",
+      "results",
+      "open issues",
+      "customer approval"
+    ],
+    "expected_evidence": "UAT results and sign-off"
+  },
+  {
+    "document_type": "QA / Process Audit Reports",
+    "practice_areas": [
+      "PQA"
+    ],
+    "keywords": [
+      "Audit plan",
+      "criteria",
+      "findings",
+      "NCs",
+      "corrective actions",
+      "closure"
+    ],
+    "expected_evidence": "QA/process audit reports"
+  },
+  {
+    "document_type": "Review Records",
+    "practice_areas": [
+      "PQA",
+      "VER"
+    ],
+    "keywords": [
+      "Requirement/design/code/test reviews",
+      "participants",
+      "findings",
+      "actions",
+      "closure"
+    ],
+    "expected_evidence": "Review minutes/checklists"
+  },
+  {
+    "document_type": "Measurement Plan",
+    "practice_areas": [
+      "MPM"
+    ],
+    "keywords": [
+      "Measurement objectives",
+      "metrics",
+      "frequency",
+      "source",
+      "owner",
+      "calculation",
+      "targets"
+    ],
+    "expected_evidence": "Approved measurement plan"
+  },
+  {
+    "document_type": "Metrics / Measurement Repository",
+    "practice_areas": [
+      "MPM"
+    ],
+    "keywords": [
+      "Effort",
+      "schedule",
+      "defects",
+      "productivity",
+      "quality",
+      "baseline/target",
+      "actual",
+      "trends"
+    ],
+    "expected_evidence": "Measurement records/dashboard"
+  },
+  {
+    "document_type": "Supplier / Vendor Documents (if applicable)",
+    "practice_areas": [
+      "SAM"
+    ],
+    "keywords": [
+      "Scope",
+      "deliverables",
+      "SLA",
+      "acceptance criteria",
+      "responsibilities",
+      "monitoring"
+    ],
+    "expected_evidence": "Supplier agreement/review records or N/A justification"
+  },
+  {
+    "document_type": "Training / Skill Matrix",
+    "practice_areas": [
+      "PPL"
+    ],
+    "keywords": [
+      "Required skills",
+      "available skills",
+      "gaps",
+      "training needs",
+      "completion"
+    ],
+    "expected_evidence": "Skill matrix/training records"
+  },
+  {
+    "document_type": "Resource / Staffing Plan",
+    "practice_areas": [
+      "PPL",
+      "PLAN"
+    ],
+    "keywords": [
+      "Required resources",
+      "assigned resources",
+      "roles",
+      "allocation",
+      "changes"
+    ],
+    "expected_evidence": "Resource plan"
+  },
+  {
+    "document_type": "Release Plan",
+    "practice_areas": [
+      "CM",
+      "PLAN",
+      "VER",
+      "VAL"
+    ],
+    "keywords": [
+      "Release scope/version",
+      "date",
+      "components",
+      "dependencies",
+      "rollback",
+      "approval"
+    ],
+    "expected_evidence": "Approved release plan"
+  },
+  {
+    "document_type": "Deployment / Release Evidence",
+    "practice_areas": [
+      "CM",
+      "VER"
+    ],
+    "keywords": [
+      "Deployment logs",
+      "version/tag",
+      "environment",
+      "approval",
+      "result",
+      "rollback"
+    ],
+    "expected_evidence": "Deployment logs/release records"
+  },
+  {
+    "document_type": "Lessons Learned",
+    "practice_areas": [
+      "MPM",
+      "PQA",
+      "PLAN"
+    ],
+    "keywords": [
+      "What went well/wrong",
+      "root causes",
+      "improvements",
+      "actions",
+      "reuse",
+      "LL ID",
+      "LL Area",
+      "I/R/O ID",
+      "LL Details"
+    ],
+    "expected_evidence": "Lessons learned record/action tracking"
+  }
+]

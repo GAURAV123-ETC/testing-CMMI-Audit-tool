@@ -1,0 +1,232 @@
+[
+  {
+    "key": "issueId",
+    "label": "Issue ID",
+    "canonical": "issue id",
+    "synonyms": [
+      "issue identifier",
+      "issue #",
+      "issue number",
+      "issue_id",
+      "incident id",
+      "incident identifier",
+      "incident #",
+      "incident number",
+      "incident_id"
+    ]
+  },
+  {
+    "key": "issueStatus",
+    "label": "Issue Status",
+    "canonical": "issue status",
+    "synonyms": [
+      "status",
+      "issue state"
+    ]
+  },
+  {
+    "key": "issueCategory",
+    "label": "Issue Category",
+    "canonical": "issue category",
+    "synonyms": [
+      "category",
+      "issue type"
+    ]
+  },
+  {
+    "key": "issueDescription",
+    "label": "Issue Description",
+    "canonical": "issue description",
+    "synonyms": [
+      "description",
+      "issue details"
+    ]
+  },
+  {
+    "key": "priority",
+    "label": "Priority",
+    "canonical": "priority",
+    "synonyms": [
+      "priority level"
+    ]
+  },
+  {
+    "key": "issueOwner",
+    "label": "Issue Owner",
+    "canonical": "issue owner",
+    "synonyms": [
+      "owner",
+      "assigned to",
+      "issue responsible"
+    ]
+  },
+  {
+    "key": "recurrence",
+    "label": "Recurrence",
+    "canonical": "recurrence",
+    "synonyms": [
+      "recurring",
+      "repeat occurrence",
+      "recurrence status"
+    ]
+  },
+  {
+    "key": "impact",
+    "label": "Impact",
+    "canonical": "impact",
+    "synonyms": [
+      "impact level",
+      "business impact"
+    ]
+  },
+  {
+    "key": "severity",
+    "label": "Severity",
+    "canonical": "severity",
+    "synonyms": [
+      "severity level"
+    ]
+  },
+  {
+    "key": "urgency",
+    "label": "Urgency",
+    "canonical": "urgency",
+    "synonyms": [
+      "urgency level",
+      "urgency status"
+    ]
+  },
+  {
+    "key": "escalatedTo",
+    "label": "Escalated To",
+    "canonical": "escalated to",
+    "synonyms": [
+      "escalation",
+      "escalate to",
+      "escalation contact"
+    ]
+  },
+  {
+    "key": "causes",
+    "label": "Causes",
+    "canonical": "causes",
+    "synonyms": [
+      "cause",
+      "cause of issue",
+      "contributing cause"
+    ]
+  },
+  {
+    "key": "ncStatus",
+    "label": "Non-Conformity Status",
+    "canonical": "non conformity status",
+    "synonyms": [
+      "nc status",
+      "non-conformity status"
+    ]
+  },
+  {
+    "key": "response",
+    "label": "Response",
+    "canonical": "response",
+    "synonyms": [
+      "response action",
+      "response details",
+      "response plan"
+    ]
+  },
+  {
+    "key": "closureCriteria",
+    "label": "Closure Criteria",
+    "canonical": "closure criteria",
+    "synonyms": [
+      "closure verification",
+      "closure conditions"
+    ]
+  },
+  {
+    "key": "finalResolution",
+    "label": "Final Resolution",
+    "canonical": "final resolution",
+    "synonyms": [
+      "resolution",
+      "final action",
+      "resolution details"
+    ]
+  },
+  {
+    "key": "closedUpToDate",
+    "label": "Closed Up To Date",
+    "canonical": "closed up to date",
+    "synonyms": [
+      "closure status",
+      "closed to date"
+    ]
+  },
+  {
+    "key": "mirReportIssue",
+    "label": "MIR Report Issue",
+    "canonical": "mir report issue",
+    "synonyms": [
+      "mir report",
+      "major incident report"
+    ]
+  },
+  {
+    "key": "incidentType",
+    "label": "Incident Type",
+    "canonical": "incident type",
+    "synonyms": [
+      "type of incident"
+    ]
+  },
+  {
+    "key": "dateTimeReported",
+    "label": "Date and Time Reported",
+    "canonical": "date and time reported",
+    "synonyms": [
+      "reported date",
+      "reported date time",
+      "date reported",
+      "reported on",
+      "reported date & time"
+    ]
+  },
+  {
+    "key": "reportedBy",
+    "label": "Reported By",
+    "canonical": "reported by",
+    "synonyms": [
+      "raised by",
+      "logged by"
+    ]
+  },
+  {
+    "key": "rootCause",
+    "label": "Root Cause",
+    "canonical": "root cause",
+    "synonyms": [
+      "root cause summary"
+    ]
+  },
+  {
+    "key": "closedDateTime",
+    "label": "Closed Date Time",
+    "canonical": "closed date time",
+    "synonyms": [
+      "closure date",
+      "closed date",
+      "date closed"
+    ]
+  },
+  {
+    "key": "plannedRemark",
+    "label": "Planned Remark",
+    "canonical": "planned remark",
+    "synonyms": [
+      "planned remarks",
+      "remark",
+      "planned action remark"
+    ]
+  }
+]

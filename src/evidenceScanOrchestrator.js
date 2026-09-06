@@ -43,12 +43,12 @@ function buildErrorFileResult(file) {
   }
 }
 
-// `uploadedFiles`: [{ fileName, text, status?, errorReason? }]. A file with
+// `uploadedFiles`: [{ fileName, text, structure?, status?, errorReason? }]. A file with
 // status: 'ERROR' skips classification/validation entirely (see
 // buildErrorFileResult above); everything else runs the normal pipeline.
 // Returns { projectName, scanDate, reports: { classificationReport,
 // evidenceGapReport, gapSummary } }.
-export async function runCMMIAuditScan(uploadedFiles, projectName) {
+export async function runCMMIAuditScan(uploadedFiles, projectName, ruleCatalog) {
   const allResults = []
 
   for (const file of uploadedFiles) {
@@ -56,8 +56,8 @@ export async function runCMMIAuditScan(uploadedFiles, projectName) {
       allResults.push(buildErrorFileResult(file))
       continue
     }
-    const classification = classifyDocument(file.text, file.fileName)
-    const validation = validateEvidence(file.text, classification)
+    const classification = classifyDocument(file.text, file.fileName, ruleCatalog, file.structure)
+    const validation = validateEvidence(file.text, classification, ruleCatalog)
     // validateEvidence()'s return carries the confidence label but not the
     // numeric score — gapReportGenerator's classificationReport needs both,
     // so it's attached here rather than widening evidenceValidationEngine's
@@ -66,11 +66,13 @@ export async function runCMMIAuditScan(uploadedFiles, projectName) {
       ...validation,
       confidenceScore: classification.confidenceScore,
       classificationReason: classification.classificationReason,
+      reasonCodes: classification.reasonCodes,
+      documentRole: classification.documentRole,
       status: 'OK',
     })
   }
 
   const reports = generateGapReport(allResults)
 
-  return { projectName, scanDate: new Date(), reports }
+  return { projectName, scanDate: new Date(), ruleSetVersion: ruleCatalog?.ruleSetVersion, reports }
 }

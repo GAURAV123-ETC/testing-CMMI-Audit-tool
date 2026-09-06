@@ -41,6 +41,28 @@ function matchKeywords(text, keywords) {
   return { matched, missed }
 }
 
+function structuralMatches(structure, keywords) {
+  const headers = (structure?.headers || []).join(' ').toLowerCase()
+  if (!headers) return []
+  return (keywords || []).filter(keyword => {
+    const value = String(keyword || '').toLowerCase().trim()
+    return value.length > 2 && headers.includes(value)
+  })
+}
+
+// Document role is intentionally independent from document type. A blank or
+// reference template may look exactly like a Risk Register structurally, but
+// must not count as project implementation evidence.
+export function classifyDocumentRole(documentText, structure = {}) {
+  const lower = (documentText || '').toLowerCase()
+  const populatedRows = Number(structure.populatedRows || 0)
+  const templateSignal = /\b(template|sample|example|placeholder|to be completed|tbd)\b/.test(lower)
+  if (structure.isSpreadsheet && populatedRows === 0) return 'BLANK_TEMPLATE'
+  if (templateSignal && populatedRows < 2) return 'TEMPLATE'
+  if (/\b(policy|process|procedure|guideline|standard)\b/.test(lower) && !/\b(project|release|sprint|risk id|requirement id)\b/.test(lower)) return 'PROCESS_REFERENCE'
+  return 'PROJECT_IMPLEMENTATION_EVIDENCE'
+}
+
 // RULE 2 — specific misclassification fixes. Content-only signal: filename
 // must never trigger or suppress these, per spec ("Even if filename says
 // something else" / "Even if filename contains misleading words").
@@ -159,7 +181,7 @@ function buildClassificationReason({ documentType, matched, bonus, bonusWords, o
 // Returns { originalFileName, detectedType, confidence, confidenceScore,
 // classificationReason, matchedKeywords, missedKeywords, practiceAreas,
 // expectedEvidence, allScores }. Never throws.
-export function classifyDocument(documentText, originalFileName) {
+export function classifyDocument(documentText, originalFileName, ruleCatalog, documentStructure = {}) {
   if (!documentText || !documentText.trim()) {
     return {
       originalFileName,
@@ -172,14 +194,23 @@ export function classifyDocument(documentText, originalFileName) {
       practiceAreas: [],
       expectedEvidence: '',
       allScores: [],
+      documentRole: classifyDocumentRole(documentText, documentStructure),
+      reasonCodes: ['NO_EXTRACTABLE_TEXT'],
     }
   }
 
-  const scored = DOCUMENT_TYPE_CONFIG.map(entry => {
+  const catalogTypes = ruleCatalog?.documentTypes?.length ? ruleCatalog.documentTypes : DOCUMENT_TYPE_CONFIG
+  const scored = catalogTypes.map(entry => {
     const { matched, missed } = matchKeywords(documentText, entry.keywords)
+    const structural = structuralMatches(documentStructure, entry.keywords)
     const total = entry.keywords.length
-    const score = total > 0 ? Math.round((matched.length / total) * 100) : 0
-    return { entry, matched, missed, score }
+    // Spreadsheet headers are a separate, higher-confidence signal. Their
+    // weight stays deterministic and is kept with the imported catalogue,
+    // rather than allowing file names to dictate classification.
+    const keywordScore = total > 0 ? matched.length / total : 0
+    const structureScore = total > 0 ? structural.length / total : 0
+    const score = Math.round((keywordScore * 0.75 + structureScore * 0.25) * 100)
+    return { entry, matched, missed, structural, score }
   })
   scored.sort((a, b) => b.score - a.score)
   const allScores = scored.slice(0, 5).map(s => ({ documentType: s.entry.documentType, score: s.score }))
@@ -200,6 +231,8 @@ export function classifyDocument(documentText, originalFileName) {
       practiceAreas: rule.practiceAreas,
       expectedEvidence: rule.expectedEvidence,
       allScores,
+      documentRole: classifyDocumentRole(documentText, documentStructure),
+      reasonCodes: matched.map(keyword => `MATCHED_KEYWORD:${normReasonCode(keyword)}`),
     }
   }
 
@@ -230,5 +263,14 @@ export function classifyDocument(documentText, originalFileName) {
     practiceAreas: top ? top.entry.practiceAreas : [],
     expectedEvidence: top ? top.entry.expectedEvidence : '',
     allScores,
+    documentRole: classifyDocumentRole(documentText, documentStructure),
+    reasonCodes: [
+      ...(top?.matched || []).map(keyword => `MATCHED_KEYWORD:${normReasonCode(keyword)}`),
+      ...(top?.structural || []).map(keyword => `MATCHED_SCHEMA:${normReasonCode(keyword)}`),
+    ],
   }
+}
+
+function normReasonCode(value) {
+  return String(value || '').toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '')
 }
