@@ -22,7 +22,11 @@ class ScreenPermissionIn(BaseModel):
 
 
 def _view(role: Role, db: Session) -> dict:
-    mappings = db.scalars(select(MapRoleScreen).where(MapRoleScreen.role_id == role.id)).all()
+    mappings = db.scalars(
+        select(MapRoleScreen)
+        .join(MdScreen, MdScreen.screen_id == MapRoleScreen.screen_id)
+        .where(MapRoleScreen.role_id == role.id, MdScreen.is_active.is_(True))
+    ).all()
     return {
         'id': role.id,
         'name': role.name,

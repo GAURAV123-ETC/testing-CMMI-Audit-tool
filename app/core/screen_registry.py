@@ -28,23 +28,22 @@ class ScreenDefinition:
 # Do not duplicate these values in pages, API dependencies, or the sidebar.
 SCREEN_REGISTRY: tuple[ScreenDefinition, ...] = (
     ScreenDefinition('dashboard', 'Dashboard', '/', 'dashboard', 10, is_default_landing=True),
-    ScreenDefinition('repository_scan', 'Repository Scan', '/repository-scan', 'folder_open', 20, ('evidence:read', 'evidence:write', 'audits:read', 'audits:write'), ('evidence:write', 'audits:write')),
-    ScreenDefinition('pa_validation', 'PA Validation', '/pa-validation', 'task_alt', 30, ('evidence:read', 'evidence:write', 'audits:read', 'audits:write'), ('evidence:write', 'audits:write')),
     ScreenDefinition('rule_catalog', 'Rules Catalogue', '/rule-catalog', 'admin_panel_settings', 40, ('*',), ('*',)),
     ScreenDefinition('add_project', 'Add Project', '/add-project', 'add_business', 50, ('customers:read', 'customers:write', 'projects:read', 'projects:write', 'audits:read', 'audits:write'), ('customers:write', 'projects:write', 'audits:write')),
     ScreenDefinition('evidence_scan', 'Evidence Scan', '/evidence-scan', 'manage_search', 60, ('evidence:read', 'evidence:write', 'audits:read', 'audits:write'), ('evidence:write', 'audits:write')),
-    ScreenDefinition('package_checker', 'Package Checker', '/package-checker', 'inventory_2', 70, ('evidence:read', 'evidence:write', 'audits:read', 'audits:write'), ('evidence:write', 'audits:write')),
     ScreenDefinition('findings', 'Findings', '/findings', 'fact_check', 80, ('findings:read', 'findings:write'), ('findings:write',)),
-    ScreenDefinition('gap_analysis', 'Gap Analysis', '/gap-analysis', 'analytics', 90, ('findings:read', 'findings:write'), ('findings:write',)),
     ScreenDefinition('correlation_map', 'Correlation Map', '/correlation-map', 'account_tree', 100, ('findings:read', 'findings:write'), ('findings:write',)),
-    ScreenDefinition('ai_guide', 'AI Guide', '/ai-guide', 'psychology', 110, ('findings:read', 'findings:write'), ('findings:write',)),
     ScreenDefinition('reports', 'AFR Reports', '/reports', 'summarize', 120, ('reports:read', 'reports:write'), ('reports:write',)),
-    ScreenDefinition('rule_library', 'CMMI Rule Library', '/rule-library', 'menu_book', 130, ('*',), ('*',)),
-    ScreenDefinition('integrations', 'Integrations', '/integrations', 'hub', 140, ('evidence:read', 'evidence:write'), ('evidence:write',)),
     ScreenDefinition('user_administration', 'User Administration', '/users', 'group', 150, ('*',), ('*',)),
     # Preserves legacy bookmarks without rendering a duplicate navigation item.
     ScreenDefinition('audit_workspace', 'Audit Workspace', '/audit-workspace', 'workspaces', 999, is_active=False),
 )
+
+# These duplicate repository-ingestion screens were retired in favour of the
+# project-scoped Evidence Scan workflow. Existing installations may still have
+# rows and role mappings from earlier versions, so disable those rows at every
+# startup instead of relying on a manual database clean-up.
+RETIRED_SCREEN_IDS = ('repository_scan', 'integrations', 'rule_library', 'pa_validation', 'package_checker', 'gap_analysis', 'ai_guide')
 
 
 def registry_by_id() -> dict[str, ScreenDefinition]:
@@ -110,6 +109,11 @@ def sync_screen_registry(db: Session, definitions: tuple[ScreenDefinition, ...] 
         row.is_active = definition.is_active
         row.display_order = definition.display_order
         row.is_default_landing = definition.is_default_landing
+    for screen_id in RETIRED_SCREEN_IDS:
+        retired = db.get(MdScreen, screen_id)
+        if retired:
+            retired.is_active = False
+            retired.is_default_landing = False
     db.flush()
     roles = db.scalars(select(Role)).all()
     active_screens = [screen for screen in definitions if screen.is_active]
@@ -133,8 +137,11 @@ def create_disabled_screen_mappings(db: Session, role: Role) -> None:
 def set_role_screen_permission(db: Session, role_id: int, screen_id: str, can_read: bool, can_write: bool) -> MapRoleScreen:
     if can_write and not can_read:
         raise ValueError('Write permission requires Read permission')
-    if not db.get(MdScreen, screen_id):
+    screen = db.get(MdScreen, screen_id)
+    if not screen:
         raise ValueError('Unknown screen')
+    if not screen.is_active:
+        raise ValueError('Cannot grant permissions to an inactive screen')
     mapping = db.get(MapRoleScreen, (role_id, screen_id))
     if not mapping:
         mapping = MapRoleScreen(role_id=role_id, screen_id=screen_id)

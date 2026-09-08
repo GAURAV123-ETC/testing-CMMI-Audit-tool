@@ -33,6 +33,19 @@ def test_legacy_plain_text_and_doc_evidence_are_retained_for_traceability(tmp_pa
     assert _extraction_failed(extractors.extract_text(str(legacy)))
 
 
+def test_legacy_word_conversion_is_disabled_by_default(monkeypatch, tmp_path):
+    legacy = tmp_path / 'legacy-plan.doc'
+    legacy.write_bytes(extractors.LEGACY_WORD_SIGNATURE + b'word-binary')
+    monkeypatch.setattr(extractors, 'get_settings', lambda: type('Settings', (), {
+        'legacy_doc_conversion_enabled': False,
+    })())
+    monkeypatch.setattr(extractors.subprocess, 'run', lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError()))
+
+    result = extractors.extract_text(str(legacy))
+
+    assert result.startswith('[Unsupported legacy format: .doc conversion is disabled')
+
+
 def test_zip_with_duplicate_paths_is_rejected():
     archive=BytesIO()
     with zipfile.ZipFile(archive,'w') as zipped:

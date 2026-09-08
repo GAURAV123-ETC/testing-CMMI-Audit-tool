@@ -62,10 +62,16 @@ def test_left_sidebar_contains_all_authenticated_routes_and_rbac_visibility():
     assert 'visible_screens' in source
     assert 'for item in self.identity[\'screens\']' in source
     assert 'MENU_ITEMS' not in source
-    for route in ('/', '/repository-scan', '/pa-validation', '/rule-catalog', '/add-project', '/evidence-scan', '/package-checker', '/findings', '/gap-analysis', '/correlation-map', '/ai-guide', '/reports', '/rule-library', '/integrations', '/users'):
+    for route in ('/', '/rule-catalog', '/add-project', '/evidence-scan', '/findings', '/correlation-map', '/reports', '/users'):
         assert repr(route) in registry
-    for label in ('Dashboard', 'Repository Scan', 'PA Validation', 'Rules Catalogue', 'Add Project', 'Evidence Scan', 'Package Checker', 'Findings', 'Gap Analysis', 'Correlation Map', 'AI Guide', 'AFR Reports', 'CMMI Rule Library', 'Integrations', 'User Administration'):
+    for label in ('Dashboard', 'Rules Catalogue', 'Add Project', 'Evidence Scan', 'Findings', 'Correlation Map', 'AFR Reports', 'User Administration'):
         assert repr(label) in registry
+    assert "ScreenDefinition('repository_scan'" not in registry
+    assert "ScreenDefinition('integrations'" not in registry
+    assert "ScreenDefinition('rule_library'" not in registry
+    assert "ScreenDefinition('pa_validation'" not in registry
+    assert "ScreenDefinition('package_checker'" not in registry
+    assert "ScreenDefinition('gap_analysis'" not in registry
 
 
 def test_authenticated_pages_use_the_shared_layout():
@@ -80,13 +86,22 @@ def test_dashboard_uses_persisted_session_coverage_not_legacy_mock_scores():
     source = Path('app/gui/pages/dashboard.py').read_text(encoding='utf-8')
     assert 'AuditSessionPracticeArea' in source
     assert 'Practice-area coverage' in source
-    assert 'Domains (all when empty)' in source
     assert 'No sample React scores are used.' in source
     assert 'Audit readiness' not in source
-    assert 'Generate filtered AFR' in source
+    assert 'Generate filtered AFR' not in source
     assert 'Run 302-rule audit scan' in source
     assert 'manage_finding' in source
     assert 'Finding correlation map' in source
+    assert "app.storage.user.get('selected_audit_session_id')" in source
+    assert "ui.label('Current audit workspace')" in source
+    assert "ui.button('Change audit session'" in source
+    assert "ui.button('Generate AFR (Excel)'" in source
+    assert "_has_permission('reports:write')" in source
+    assert 'You do not have permission to generate AFR reports.' in source
+    assert "ui.navigate.to('/add-project')" in source
+    assert "ui.navigate.to('/audit-workspace')" not in source
+    assert 'Filters & export (optional)' not in source
+    assert "label='Finding severity'" not in source
 
 
 def test_dashboard_completion_api_has_protected_comment_remediation_and_filtered_afr_support():
@@ -99,16 +114,20 @@ def test_dashboard_completion_api_has_protected_comment_remediation_and_filtered
     assert 'filters.model_dump()' in reports
 
 
-def test_gap_analysis_filters_persisted_findings_and_exports_the_selected_session():
-    source = Path('app/gui/pages/audit_workspace.py').read_text(encoding='utf-8')
-    assert "@ui.page(screen_url('gap_analysis'))" in source
-    assert "ui.button('Apply filters'" in source
-    assert "Finding.audit_session_id == selected_id" in source
-    assert "Finding.practice_area_code.in_(pa_code.value)" in source
-    assert "Finding.severity.in_(severity.value)" in source
-    assert "Finding.status.in_(status.value)" in source
-    assert "Generate filtered AFR (.xlsx)" in source
-    assert "Select one audit session before generating a filtered AFR." in source
+def test_duplicate_package_and_gap_analysis_surfaces_are_retired():
+    registry = Path('app/core/screen_registry.py').read_text(encoding='utf-8')
+    workspace = Path('app/gui/pages/audit_workspace.py').read_text(encoding='utf-8')
+    reports = Path('app/api/endpoints/reports.py').read_text(encoding='utf-8')
+    main = Path('main.py').read_text(encoding='utf-8')
+    assert "'package_checker'" in registry
+    assert "'gap_analysis'" in registry
+    assert not Path('app/gui/pages/package_checker.py').exists()
+    assert not Path('app/services/audit_engine/package_validation.py').exists()
+    assert not Path('app/services/audit_engine/gap_analysis.py').exists()
+    assert 'package_checker.register()' not in main
+    assert "@ui.page(screen_url('gap_analysis'))" not in workspace
+    assert 'create_gap_report' not in reports
+    assert '/audit-sessions/{audit_session_id}/gap/{format}' not in reports
 
 
 def test_correlation_map_is_a_protected_persisted_evidence_route_not_sample_data():
@@ -120,38 +139,40 @@ def test_correlation_map_is_a_protected_persisted_evidence_route_not_sample_data
     assert 'Evidence link missing' in source
 
 
-def test_ai_guide_uses_persisted_rules_and_live_findings_not_legacy_mock_chat():
+def test_ai_guide_is_retired_without_removing_shared_rule_or_finding_workflows():
     source = Path('app/gui/pages/audit_workspace.py').read_text(encoding='utf-8')
-    assert "@ui.page(screen_url('ai_guide'))" in source
-    assert 'select(CmmiRule)' in source
-    assert "Finding.status.in_(['open', 'in_progress'])" in source
-    assert 'no invented AI response is used' in source
-    assert 'def ask_guidance' in source
-    assert "ui.button('Ask guidance'" in source
-    assert 'CMMI guidance (stored rules and live findings)' in source
+    registry = Path('app/core/screen_registry.py').read_text(encoding='utf-8')
+    assert "@ui.page(screen_url('ai_guide'))" not in source
+    assert "ScreenDefinition('ai_guide'" not in registry
+    assert "'ai_guide'" in registry
 
 
-def test_github_import_is_server_side_bounded_and_permission_protected():
-    integrations = Path('app/api/endpoints/integrations.py').read_text(encoding='utf-8')
-    github = Path('app/services/integrations/github.py').read_text(encoding='utf-8')
-    assert "@router.post('/github/import')" in integrations
-    assert "Depends(require_screen('integrations', 'write'))" in integrations
-    assert 'persist_remote_evidence' in integrations
-    assert 'max_files: int = 500' in github
-    assert 'GitHub returned a truncated repository tree' in github
-    repository_page = Path('app/gui/pages/repository_scan.py').read_text(encoding='utf-8')
-    assert 'Import supported evidence from GitHub' in repository_page
-    assert 'Personal access token (optional)' in repository_page
-    assert 'token.value = \'\'' in repository_page
-    assert 'Import supported evidence from SharePoint' in repository_page
-    assert 'Import supported evidence from Google Drive' in repository_page
-    assert "@router.post('/sharepoint/import')" in integrations
-    assert "@router.post('/google-drive/import')" in integrations
-    assert "repository-folder-uploader" in repository_page
-    assert "input.setAttribute('webkitdirectory', '')" in repository_page
-    pa_validation_page = Path('app/gui/pages/pa_validation.py').read_text(encoding='utf-8')
-    assert "pa-folder-uploader" in pa_validation_page
-    assert "input.setAttribute('webkitdirectory', '')" in pa_validation_page
+def test_repository_and_cloud_import_surfaces_are_retired():
+    registry = Path('app/core/screen_registry.py').read_text(encoding='utf-8')
+    router = Path('app/api/router.py').read_text(encoding='utf-8')
+    main = Path('main.py').read_text(encoding='utf-8')
+    evidence_scan = Path('app/gui/pages/evidence_scan.py').read_text(encoding='utf-8')
+    assert "'ai_guide'" in registry
+    assert 'integrations.router' not in router
+    assert 'repository_scan.register()' not in main
+    assert not Path('app/gui/pages/repository_scan.py').exists()
+    assert not Path('app/api/endpoints/integrations.py').exists()
+    assert not Path('app/services/integrations/github.py').exists()
+    assert not Path('app/services/integrations/google_drive.py').exists()
+    assert not Path('app/services/integrations/microsoft_graph.py').exists()
+    assert 'Upload evidence' in evidence_scan
+    assert 'repository-folder-uploader' not in evidence_scan
+    assert not Path('app/gui/pages/pa_validation.py').exists()
+
+
+def test_rule_catalog_combines_version_management_and_database_rule_browsing():
+    catalog = Path('app/gui/pages/rule_catalog.py').read_text(encoding='utf-8')
+    workspace = Path('app/gui/pages/audit_workspace.py').read_text(encoding='utf-8')
+    assert "ui.tab('Manage versions'" in catalog
+    assert "ui.tab('Browse stored rules'" in catalog
+    assert "CmmiRule.checklist_version_id == version_id" in catalog
+    assert "label='Ruleset version'" in catalog
+    assert 'CMMI Rule Library' not in workspace
 
 
 def test_evidence_scan_exposes_project_scoped_upload_and_persisted_results():
@@ -188,6 +209,38 @@ def test_add_project_uses_one_dynamic_form_with_duplicate_protection_and_paginat
     assert 'Customer name' in source and 'Project name' in source and 'Audit session name' in source
     assert 'func.lower(AuditSession.audit_name) == audit_value.casefold()' in source
     assert "pagination={'rowsPerPage': 10}" in source
+
+
+def test_persisted_data_tables_are_paginated_and_use_stable_database_ids():
+    sources = {
+        'app/gui/pages/add_project.py': ('row_key=\'id\'', 'select(AuditSession, AuditProject, Customer)'),
+        'app/gui/pages/audit_workspace.py': ("row_key='id'", "'download_url': f'/api/v1/reports/{report.id}/download'"),
+        'app/gui/pages/dashboard.py': ("row_key=columns[0][0]",),
+        'app/gui/pages/evidence_scan.py': ("row_key='id'",),
+        'app/gui/pages/rule_catalog.py': ("row_key='id'",),
+    }
+    for path, expected in sources.items():
+        source = Path(path).read_text(encoding='utf-8')
+        assert 'pagination=' in source
+        for value in expected:
+            assert value in source
+
+
+def test_afr_collects_comments_and_actions_in_bulk_queries():
+    source = Path('app/services/reports/afr_report.py').read_text(encoding='utf-8')
+    assert 'finding_ids = [finding.id for finding in findings]' in source
+    assert 'Comment.finding_id.in_(finding_ids)' in source
+    assert 'RemediationAction.finding_id.in_(finding_ids)' in source
+
+
+def test_saved_project_details_support_safe_edit_and_delete_actions():
+    source = Path('app/gui/pages/add_project.py').read_text(encoding='utf-8')
+    assert "'actions', 'label': 'Actions'" in source
+    assert "edit_saved_details" in source
+    assert "confirm_delete_saved_details" in source
+    assert "props('type=date')" in source
+    assert 'Historical audit data is protected.' in source
+    assert 'db.execute(delete(AuditSessionPracticeArea)' in source
 
 
 def test_audit_workspace_has_one_setup_path_and_hands_off_to_evidence_scan():

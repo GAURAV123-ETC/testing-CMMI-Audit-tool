@@ -25,8 +25,6 @@ def equivalent(left: str, right: str) -> bool:
         return False
     if left == right or _singular(left) == _singular(right):
         return True
-    if len(left) > 2 and len(right) > 2 and (left in right or right in left):
-        return True
     maximum = max(len(left), len(right))
     return maximum >= 4 and _levenshtein(left, right) <= (1 if maximum <= 6 else 2)
 

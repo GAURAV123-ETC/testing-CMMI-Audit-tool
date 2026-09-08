@@ -36,6 +36,27 @@ def _active_version(db):
     return db.scalar(select(ChecklistVersion).where(ChecklistVersion.is_active.is_(True)).order_by(ChecklistVersion.id.desc()))
 
 
+def _workspace_context(db, customer_id: int | None, project_id: int | None,
+                       audit_session_id: int | None) -> tuple[Customer, AuditProject, AuditSession] | None:
+    """Return a verified customer/project/session chain for the selected workspace.
+
+    The browser stores the three selected IDs independently.  Always verify
+    their foreign-key relationship before showing, uploading, or scanning
+    evidence so a stale or manipulated selection cannot save data against a
+    different audit session.
+    """
+    if not customer_id or not project_id or not audit_session_id:
+        return None
+    customer = db.get(Customer, int(customer_id))
+    project = db.get(AuditProject, int(project_id))
+    audit = db.get(AuditSession, int(audit_session_id))
+    if not customer or not project or not audit:
+        return None
+    if project.customer_id != customer.id or audit.project_id != project.id:
+        return None
+    return customer, project, audit
+
+
 def _ensure_scan_session(db, project_id: int, user_id: int) -> AuditSession:
     """Compatibility helper for ruleset reassessments; normal UI uses saved sessions."""
     if not db.get(AuditProject, project_id):
@@ -94,7 +115,10 @@ def register():
         remembered_session = app.storage.user.get('selected_audit_session_id')
         remembered_customer = app.storage.user.get('selected_evidence_customer_id')
         with SessionLocal() as db:
-            remembered_project_record = db.get(AuditProject, remembered_project) if remembered_project else None
+            remembered_session_record = db.get(AuditSession, remembered_session) if remembered_session else None
+            remembered_project_record = db.get(
+                AuditProject, remembered_session_record.project_id if remembered_session_record else remembered_project
+            )
         initial_customer = (
             remembered_project_record.customer_id if remembered_project_record else
             remembered_customer if remembered_customer in customers else next(iter(customers), None)
@@ -182,11 +206,10 @@ def register():
 
         def update_workspace_summary() -> None:
             with SessionLocal() as db:
-                customer = db.get(Customer, int(customer_select.value)) if customer_select.value else None
-                project = db.get(AuditProject, int(project_select.value)) if project_select.value else None
-                audit = db.get(AuditSession, int(audit_select.value)) if audit_select.value else None
-                version = db.get(ChecklistVersion, audit.checklist_version_id) if audit else None
-            if customer and project and audit:
+                context = _workspace_context(db, customer_select.value, project_select.value, audit_select.value)
+                version = db.get(ChecklistVersion, context[2].checklist_version_id) if context else None
+            if context:
+                customer, project, audit = context
                 context_summary.text = f'Selected: {customer.name} / {project.name} / {audit.audit_name or f"Audit session #{audit.id}"}'
                 rules_summary.text = f'Rules applied: {version.version if version else f"ruleset ID {audit.checklist_version_id}"} (pinned to this audit session)'
                 scan_context.text = f'Scan target: Customer {customer.name} | Project {project.name} | Audit session {audit.audit_name or f"#{audit.id}"}'
@@ -220,12 +243,16 @@ def register():
             results.refresh()
 
         def apply_workspace_selection() -> None:
-            if customer_select.value:
-                app.storage.user['selected_evidence_customer_id'] = customer_select.value
-            if project_select.value:
-                app.storage.user['selected_evidence_project_id'] = project_select.value
-            if audit_select.value:
-                app.storage.user['selected_audit_session_id'] = audit_select.value
+            with SessionLocal() as db:
+                context = _workspace_context(db, customer_select.value, project_select.value, audit_select.value)
+            if not context:
+                ui.notify('Choose a valid customer, project, and audit session combination.', type='warning')
+                refresh_workspace()
+                return
+            customer, project, audit = context
+            app.storage.user['selected_evidence_customer_id'] = customer.id
+            app.storage.user['selected_evidence_project_id'] = project.id
+            app.storage.user['selected_audit_session_id'] = audit.id
             app.storage.user.pop('evidence_details_session_id', None)
             update_workspace_summary()
             sync_action_controls()
@@ -238,7 +265,10 @@ def register():
                 return
             try:
                 with SessionLocal() as db:
-                    report = create_current_findings_export(db, int(audit_select.value), _current_user_id(), fmt)
+                    context = _workspace_context(db, customer_select.value, project_select.value, audit_select.value)
+                    if not context:
+                        raise ValueError('The selected customer, project, and audit session no longer form a valid workspace.')
+                    report = create_current_findings_export(db, context[2].id, _current_user_id(), fmt)
                 media_type = 'text/csv' if fmt == 'csv' else 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
                 ui.download(report.storage_path, filename=Path(report.storage_path).name, media_type=media_type)
                 ui.notify(f'{fmt.upper()} download is ready.', type='positive')
@@ -253,15 +283,17 @@ def register():
                 ui.label('Saved inventory, findings, and prior scan results are hidden for this audit workspace. Click “View saved scan details” above when you are ready to review this selected session.').classes('text-slate-600 mt-5')
                 return
             with SessionLocal() as db:
-                session = db.get(AuditSession, int(audit_select.value))
-                if not session:
-                    ui.label('The selected audit session no longer exists. Refresh the saved details.').classes('text-negative mt-5'); return
+                context = _workspace_context(db, customer_select.value, project_select.value, audit_select.value)
+                if not context:
+                    ui.label('The selected workspace is no longer valid. Refresh the saved details and choose it again.').classes('text-negative mt-5'); return
+                _, _, session = context
                 files = db.scalars(select(EvidenceFile).join(EvidenceSource).where(EvidenceSource.audit_session_id == session.id).order_by(EvidenceFile.relative_path)).all()
                 findings = db.scalars(select(Finding).where(Finding.audit_session_id == session.id, Finding.status == 'open')).all()
-                latest_job = db.scalars(select(ScanJob).where(
+                scan_jobs = db.scalars(select(ScanJob).where(
                     ScanJob.audit_session_id == session.id,
                     ScanJob.job_type == 'master_rule_and_irp_scan',
-                ).order_by(ScanJob.created_at.desc())).first()
+                ).order_by(ScanJob.created_at.desc())).all()
+                latest_job = scan_jobs[0] if scan_jobs else None
             ui.label('Saved evidence, findings, and scan result').classes('evidence-results-title text-xl mt-5')
             ui.label('Uploaded files are stored permanently for this audit session. They remain here after refresh or sign-in; upload again only when evidence changes.').classes('text-sm text-slate-600')
             with ui.row().classes('w-full gap-4 flex-wrap mt-2'):
@@ -300,7 +332,7 @@ def register():
                 })
             ui.table(columns=[{'name':key,'label':label,'field':key,'align':'left'} for key,label in (
                 ('file','Document'),('type','Document Type'),('role','Document Role'),('practice_areas','Practice Areas'),
-                ('confidence','Confidence'),('status','Processing Status'))],rows=rows,row_key='id').props("pagination={'rowsPerPage': 25}").classes('w-full')
+                ('confidence','Confidence'),('status','Processing Status'))],rows=rows,row_key='id').props("pagination={'rowsPerPage': 25, 'rowsPerPageOptions': [10, 25, 50, 100]}").classes('w-full')
             with ui.expansion('What do these labels mean?', icon='help_outline').classes('w-full mt-2'):
                 ui.label('Document type is the best match against the document-type catalogue stored with this audit session’s pinned CMMI ruleset. Confidence measures that match only; it is not an audit score or compliance result.').classes('text-sm text-slate-600')
                 ui.label('Document role tells the scanner whether a file is usable project evidence, a process reference, a template, blank, or a duplicate. Templates and references are retained but do not satisfy implementation evidence requirements.').classes('text-sm text-slate-600')
@@ -332,11 +364,28 @@ def register():
                     ui.table(columns=[{'name': key, 'label': label, 'field': key, 'align': 'left'} for key, label in (
                         ('rule', 'Rule'), ('practice_area', 'Practice Area'), ('severity', 'Severity'),
                         ('finding', 'Finding'), ('recommendation', 'Recommended action'), ('status', 'Status'),
-                    )], rows=finding_rows, row_key='id').props("pagination={'rowsPerPage': 25}").classes('w-full')
+                    )], rows=finding_rows, row_key='id').props("pagination={'rowsPerPage': 25, 'rowsPerPageOptions': [10, 25, 50, 100]}").classes('w-full')
             elif latest_job.status == 'running':
                 ui.label('A scan is currently running. This view refreshes when it completes.').classes('text-primary mt-3')
             else:
                 ui.label(f"The latest scan did not complete: {(latest_job.result_summary or {}).get('error', 'unknown error')}").classes('text-negative mt-3')
+            if scan_jobs:
+                with ui.expansion('Scan history', icon='history').classes('w-full mt-4'):
+                    ui.label('Each run remains recorded against this audit session. New scans supersede prior open findings but do not delete the earlier scan job history.').classes('text-sm text-slate-600')
+                    history_rows = []
+                    for job in scan_jobs:
+                        summary = job.result_summary or {}
+                        history_rows.append({
+                            'id': job.id,
+                            'started': job.created_at.strftime('%Y-%m-%d %H:%M UTC'),
+                            'status': job.status.title(),
+                            'files': summary.get('files_processed', summary.get('files_total', '—')),
+                            'findings': summary.get('findings_created', '—'),
+                            'detail': summary.get('error') or summary.get('phase') or 'Completed assessment',
+                        })
+                    ui.table(columns=[{'name': key, 'label': label, 'field': key, 'align': 'left'} for key, label in (
+                        ('started', 'Started'), ('status', 'Status'), ('files', 'Files'), ('findings', 'Findings'), ('detail', 'Detail'),
+                    )], rows=history_rows, row_key='id').props("pagination={'rowsPerPage': 10, 'rowsPerPageOptions': [10, 25, 50, 100]}").classes('w-full mt-2')
 
         def show_details() -> None:
             if not audit_select.value:
@@ -366,9 +415,10 @@ def register():
                     ui.notify('Select a customer, project, and audit session first.', type='warning'); return
                 try:
                     with SessionLocal() as db:
-                        session = db.get(AuditSession, int(audit_select.value))
-                        if not session:
-                            raise ValueError('The selected audit session no longer exists.')
+                        context = _workspace_context(db, customer_select.value, project_select.value, audit_select.value)
+                        if not context:
+                            raise ValueError('The selected customer, project, and audit session no longer form a valid workspace.')
+                        _, _, session = context
                         count=persist_uploaded_evidence(db,session.id,_current_user_id(),event.name,event.content.read(),event.type,source_type='evidence_scan_folder')
                         db.commit()
                     uploader.reset()
@@ -415,8 +465,8 @@ def register():
                 user_id = _current_user_id()
                 def execute_scan() -> dict:
                     with SessionLocal() as db:
-                        if not db.get(AuditSession, audit_session_id):
-                            raise ValueError('The selected audit session no longer exists.')
+                        if not _workspace_context(db, customer_select.value, project_select.value, audit_session_id):
+                            raise ValueError('The selected customer, project, and audit session no longer form a valid workspace.')
                         return scan_session(db, audit_session_id, user_id)
                 outcome = await run.io_bound(execute_scan)
                 scan_state.text = f"Scan completed: {outcome['files_processed']} file(s) assessed and {outcome['findings_created']} finding(s) created. Review the persisted result below."

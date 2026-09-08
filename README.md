@@ -1,6 +1,6 @@
 # CMMI V3.0 Audit Platform
 
-This repository is being migrated to a server-first Python/NiceGUI/FastAPI/MySQL platform. The Python production entrypoint is `main.py`; the legacy React/Vite implementation remains only as a temporary migration reference pending test and Docker verification.
+This repository is a server-first Python/NiceGUI/FastAPI/MySQL platform. The production entrypoint is `main.py`.
 
 ## Local development
 

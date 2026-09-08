@@ -1,5 +1,4 @@
 # Local dependencies, secrets, generated files, and runtime data.
-node_modules/
 .venv/
 .env
 .nicegui/

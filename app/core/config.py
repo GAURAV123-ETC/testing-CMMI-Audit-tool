@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     max_login_attempts: int = 5
     login_lockout_minutes: int = 15
     max_upload_mb: int = 50
+    # Office automation is opt-in because it must run only in a controlled
+    # interactive Windows service account with Word installed and hardened.
+    legacy_doc_conversion_enabled: bool = False
     upload_dir: Path = ROOT / 'uploads'
     output_dir: Path = ROOT / 'output_file'
     template_dir: Path = ROOT / 'template_file'
@@ -32,8 +35,6 @@ class Settings(BaseSettings):
     azure_client_secret: str = ''
     sender_email: str = ''
     microsoft_redirect_uri: str = ''
-    google_client_id: str = ''
-    google_client_secret: str = ''
     smtp_host: str = ''
     smtp_port: int = 587
     smtp_username: str = ''

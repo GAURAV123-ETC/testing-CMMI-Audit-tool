@@ -27,8 +27,22 @@ def create_afr(db: Session, audit_session_id: int, user_id: int, fmt: str,
     if from_date: query = query.where(Finding.created_at >= datetime.combine(from_date, time.min, tzinfo=timezone.utc))
     if to_date: query = query.where(Finding.created_at <= datetime.combine(to_date, time.max, tzinfo=timezone.utc))
     findings = db.scalars(query.order_by(Finding.severity, Finding.practice_area_code, Finding.id)).all()
-    comments = {finding.id: [item.body for item in db.scalars(select(Comment).where(Comment.finding_id == finding.id).order_by(Comment.created_at)).all()] for finding in findings}
-    actions = {finding.id: [f'{item.status}: {item.action}' for item in db.scalars(select(RemediationAction).where(RemediationAction.finding_id == finding.id).order_by(RemediationAction.created_at)).all()] for finding in findings}
+    finding_ids = [finding.id for finding in findings]
+    comments = {finding_id: [] for finding_id in finding_ids}
+    actions = {finding_id: [] for finding_id in finding_ids}
+    if finding_ids:
+        for finding_id, body in db.execute(
+            select(Comment.finding_id, Comment.body)
+            .where(Comment.finding_id.in_(finding_ids))
+            .order_by(Comment.finding_id, Comment.created_at)
+        ):
+            comments[finding_id].append(body)
+        for finding_id, status, action in db.execute(
+            select(RemediationAction.finding_id, RemediationAction.status, RemediationAction.action)
+            .where(RemediationAction.finding_id.in_(finding_ids))
+            .order_by(RemediationAction.finding_id, RemediationAction.created_at)
+        ):
+            actions[finding_id].append(f'{status}: {action}')
     created = datetime.now(timezone.utc)
     output = get_settings().output_dir / f'AFR_session-{audit_session_id}_{created:%Y%m%dT%H%M%SZ}_{uuid4().hex[:8]}.{fmt}'
     if fmt == 'xlsx':
@@ -62,58 +76,3 @@ def create_afr(db: Session, audit_session_id: int, user_id: int, fmt: str,
                 pdf.drawString(48,y,segment); y-=12
         pdf.save()
     report=GeneratedReport(audit_session_id=audit_session_id,report_type=f'afr_{fmt}',storage_path=str(output),created_by_id=user_id); db.add(report); db.commit(); db.refresh(report); return report
-
-
-def create_gap_report(db: Session, audit_session_id: int, user_id: int, fmt: str,
-                      practice_area_codes: list[str] | None = None,
-                      severities: list[str] | None = None,
-                      statuses: list[str] | None = None,
-                      from_date: date | None = None, to_date: date | None = None) -> GeneratedReport:
-    """Create the legacy Gap Analysis Excel/PDF deliverable from persisted findings."""
-    if fmt not in {'xlsx', 'pdf'}:
-        raise ValueError('Gap report format must be xlsx or pdf')
-    audit = db.get(AuditSession, audit_session_id)
-    if not audit:
-        raise ValueError('Audit session not found')
-    query = select(Finding).where(Finding.audit_session_id == audit_session_id)
-    if practice_area_codes: query = query.where(Finding.practice_area_code.in_(practice_area_codes))
-    if severities: query = query.where(Finding.severity.in_(severities))
-    if statuses: query = query.where(Finding.status.in_(statuses))
-    if from_date: query = query.where(Finding.created_at >= datetime.combine(from_date, time.min, tzinfo=timezone.utc))
-    if to_date: query = query.where(Finding.created_at <= datetime.combine(to_date, time.max, tzinfo=timezone.utc))
-    findings = db.scalars(query.order_by(Finding.practice_area_code, Finding.severity, Finding.id)).all()
-    created = datetime.now(timezone.utc)
-    output = get_settings().output_dir / f'Gap_Report_session-{audit_session_id}_{created:%Y%m%dT%H%M%SZ}_{uuid4().hex[:8]}.{fmt}'
-    summary: dict[tuple[str, str], int] = {}
-    for finding in findings:
-        key = (finding.practice_area_code, finding.severity)
-        summary[key] = summary.get(key, 0) + 1
-    if fmt == 'xlsx':
-        from openpyxl import Workbook
-        workbook = Workbook(); findings_sheet = workbook.active; findings_sheet.title = 'Gap Findings'
-        findings_sheet.append(['Finding ID', 'Rule ID', 'Practice Area', 'Severity', 'Status', 'Finding', 'Description', 'Recommendation'])
-        for finding in findings:
-            findings_sheet.append([finding.id, finding.rule_id, finding.practice_area_code, finding.severity, finding.status, finding.title, finding.description, finding.recommendation])
-        summary_sheet = workbook.create_sheet('Gap Summary')
-        summary_sheet.append(['Audit session', audit_session_id]); summary_sheet.append(['Audit name', audit.audit_name or f'Audit session #{audit_session_id}'])
-        summary_sheet.append(['Generated at', created.isoformat()]); summary_sheet.append([]); summary_sheet.append(['Practice Area', 'Severity', 'Finding Count'])
-        for (practice_area, severity), count in sorted(summary.items()): summary_sheet.append([practice_area, severity, count])
-        workbook.save(output)
-    else:
-        from reportlab.lib.pagesizes import A4
-        from reportlab.pdfgen import canvas
-        pdf = canvas.Canvas(str(output), pagesize=A4); y = 800
-        pdf.setFont('Helvetica-Bold', 16); pdf.drawString(48, y, 'CMMI Gap Analysis Report'); y -= 24
-        pdf.setFont('Helvetica', 9); pdf.drawString(48, y, f'Audit: {audit.audit_name or f"Session #{audit_session_id}"} | Generated: {created.isoformat()}'); y -= 20
-        for (practice_area, severity), count in sorted(summary.items()):
-            if y < 60: pdf.showPage(); y = 800
-            pdf.drawString(48, y, f'{practice_area} | {severity.upper()} | {count} finding(s)'); y -= 12
-        y -= 8
-        for finding in findings:
-            for line in [f'[{finding.severity.upper()}] {finding.practice_area_code} {finding.rule_id or ""}: {finding.title}'[index:index + 105] for index in range(0, len(f'[{finding.severity.upper()}] {finding.practice_area_code} {finding.rule_id or ""}: {finding.title}'), 105)]:
-                if y < 50: pdf.showPage(); y = 800
-                pdf.drawString(48, y, line); y -= 12
-        pdf.save()
-    report = GeneratedReport(audit_session_id=audit_session_id, report_type=f'gap_{fmt}', storage_path=str(output), created_by_id=user_id)
-    db.add(report); db.commit(); db.refresh(report)
-    return report

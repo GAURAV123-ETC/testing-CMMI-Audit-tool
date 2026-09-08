@@ -2,13 +2,12 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
-from openpyxl import load_workbook
 from app.core.audit_log import log_action
 from app.core.config import get_settings
 from app.db.models import (AuditSession, AuditSessionPracticeArea, CmmiRule, DocumentTypeRule,
                            EvidenceFile, EvidenceSource, Finding, FindingEvidence, PracticeArea, ScanJob)
 from app.services.document_processing.extractors import extract_text
-from app.services.document_processing.tabular import read_tabular_rows
+from app.services.document_processing.tabular import read_tabular_sheets
 from app.services.audit_engine.evidence_validation import classify_document, generate_gap_report, validate_evidence
 from app.services.audit_engine.irp_validation import incident_context, validate_incident_log
 from app.services.audit_engine.rca_validation import validate_lessons_learned_workbook, validate_rca_workbook
@@ -52,19 +51,15 @@ def _document_structure(path: str) -> dict:
     if not path.lower().endswith(TABULAR_SUFFIXES):
         return {'is_spreadsheet': False}
     try:
-        if path.lower().endswith('.xlsx'):
-            workbook = load_workbook(path, read_only=True, data_only=False)
-            headers, populated_rows = [], 0
-            for sheet in workbook.worksheets:
-                rows = [list(row) for row in sheet.iter_rows(values_only=True)
-                        if any(str(value or '').strip() for value in row)]
-                if rows: headers.extend(str(value or '') for value in rows[0] if str(value or '').strip())
-                populated_rows += max(0, len(rows) - 1)
-            return {'is_spreadsheet': True, 'sheet_names': workbook.sheetnames,
-                    'headers': headers, 'populated_rows': populated_rows}
-        rows = [row for row in read_tabular_rows(path) if any(str(value or '').strip() for value in row)]
-        return {'is_spreadsheet': True, 'headers': [str(value or '') for value in rows[0]] if rows else [],
-                'populated_rows': max(0, len(rows) - 1)}
+        sheets = read_tabular_sheets(path, data_only=False)
+        headers, populated_rows = [], 0
+        for _, source_rows in sheets:
+            rows = [row for row in source_rows if any(str(value or '').strip() for value in row)]
+            if rows:
+                headers.extend(str(value or '') for value in rows[0] if str(value or '').strip())
+            populated_rows += max(0, len(rows) - 1)
+        return {'is_spreadsheet': True, 'sheet_names': [name for name, _ in sheets],
+                'headers': headers, 'populated_rows': populated_rows}
     except Exception:
         return {'is_spreadsheet': True, 'headers': [], 'populated_rows': 0}
 
@@ -182,7 +177,11 @@ def scan_session(db: Session, audit_session_id: int, user_id: int) -> dict:
                 for finding in _run_specialized_validator(validate_lessons_learned_workbook, workbook_path, 'Lessons learned'):
                     results.append((type('R', (), {**finding, 'practice_area':'IRP'})(), [evidence.id]))
             path_name = evidence.relative_path.lower()
-            if path_name.endswith(TABULAR_SUFFIXES) and ('risk' in path_name or 'sla' in path_name or ('issue' in path_name and 'incident' not in path_name)):
+            is_risk_or_sla = 'risk' in path_name or 'sla' in path_name
+            is_governed_issue_register = any(hint in path_name for hint in (
+                'issue log', 'issue register', 'issue tracker', 'incident log', 'incident register', 'incident tracker',
+            ))
+            if path_name.endswith(TABULAR_SUFFIXES) and (is_risk_or_sla or is_governed_issue_register):
                 for finding in _run_specialized_validator(validate_risk_sla, workbook_path, 'Risk/issue SLA'):
                     results.append((type('R', (), {**finding, 'practice_area':'IRP'})(), [evidence.id]))
 

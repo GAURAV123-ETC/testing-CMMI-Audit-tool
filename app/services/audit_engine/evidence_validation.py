@@ -33,7 +33,9 @@ def classify_document_role(text: str, structure: dict | None = None) -> str:
     populated_rows = int(structure.get('populated_rows') or 0)
     if structure.get('is_spreadsheet') and populated_rows == 0:
         return 'BLANK_TEMPLATE'
-    if re.search(r'\b(template|sample|example|placeholder|to be completed|tbd)\b', lower) and populated_rows < 2:
+    is_template = re.search(r'\b(template|sample|example|placeholder|to be completed|tbd)\b', lower)
+    implementation_markers = re.search(r'\b(project|requirement|srs|brd|risk|test|approved|baseline|release)\b', lower)
+    if is_template and populated_rows < 2 and not implementation_markers:
         return 'TEMPLATE'
     if re.search(r'\b(policy|process|procedure|guideline|standard)\b', lower) and not re.search(r'\b(project|release|sprint|risk id|requirement id)\b', lower):
         return 'PROCESS_REFERENCE'
@@ -49,7 +51,11 @@ def classify_document(text: str, file_name: str, document_types: list[dict] | No
     for entry in (document_types or DOCUMENT_TYPES):
         matched=[word for word in entry['keywords'] if word.lower() in lower]; missed=[word for word in entry['keywords'] if word.lower() not in lower]
         scored.append((round(100*len(matched)/len(entry['keywords'])) if entry['keywords'] else 0,entry,matched,missed))
-    scored.sort(key=lambda item:item[0], reverse=True)
+    file_name_lower = file_name.lower()
+    def filename_specificity(item) -> int:
+        words = re.findall(r'[a-z0-9]{3,}', item[1]['document_type'].lower())
+        return sum(word in file_name_lower for word in words if word not in {'document', 'evidence'})
+    scored.sort(key=lambda item: (item[0], filename_specificity(item)), reverse=True)
     candidates=[{'document_type': item[1]['document_type'], 'score': item[0]} for item in scored[:5]]
     for name, doc_type, areas, minimum, words, expected in OVERRIDES:
         matched=[word for word in words if word in lower]

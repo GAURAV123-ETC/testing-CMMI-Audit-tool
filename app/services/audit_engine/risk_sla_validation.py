@@ -5,16 +5,16 @@ checks only closed records with enough data to calculate an SLA, and returns
 normal finding dictionaries for the persisted audit scan.
 """
 from datetime import datetime
-from app.services.document_processing.tabular import read_tabular_rows
-from app.services.audit_engine.header_matching import match_fields_exclusive, normalize_header
+from app.services.document_processing.tabular import select_tabular_table
+from app.services.audit_engine.header_matching import normalize_header
 
 
 FIELDS = [
     {'key': 'id', 'canonical': 'issue id', 'synonyms': ['risk id', 'issue number', 'risk number', 'risk ref', 'reference id', 'ticket id', 'defect id', 'id']},
     {'key': 'priority', 'canonical': 'priority', 'synonyms': ['severity', 'criticality', 'risk level', 'priority level']},
     {'key': 'status', 'canonical': 'status', 'synonyms': ['current status', 'issue status', 'risk status', 'resolution status']},
-    {'key': 'raised', 'canonical': 'date raised', 'synonyms': ['raised date', 'created date', 'opened date', 'logged date', 'issue date']},
-    {'key': 'closed', 'canonical': 'closed date', 'synonyms': ['resolution date', 'date closed', 'closed on', 'completed date', 'resolved on']},
+    {'key': 'raised', 'canonical': 'date raised', 'synonyms': ['raised date', 'created date', 'opened date', 'logged date', 'issue date', 'date identified']},
+    {'key': 'closed', 'canonical': 'closed date', 'synonyms': ['resolution date', 'date resolved', 'date closed', 'closed on', 'completed date', 'resolved on', 'date of actual closure', 'actual closure date']},
     {'key': 'reason', 'canonical': 'sla breach reason', 'synonyms': ['delay reason', 'reason', 'remarks', 'comments', 'justification', 'root cause']},
 ]
 MANDATORY = ('priority', 'status', 'raised', 'closed')
@@ -49,12 +49,12 @@ def _value(row: list, index: int | None):
 
 def validate_risk_sla(path: str) -> list[dict]:
     """Return SLA-breach findings for a tabular risk or issue register."""
-    rows = read_tabular_rows(path)
+    selection = select_tabular_table(path, FIELDS, MANDATORY)
+    rows, indices = selection.rows, selection.field_indices
     if not rows:
         return [{'rule_id': 'IRP-RISK-SLA', 'severity': 'major', 'title': 'Empty risk or issue register',
                  'description': 'No tabular records were found for SLA validation.',
                  'recommendation': 'Provide a populated CSV or Excel risk/issue register.'}]
-    indices = match_fields_exclusive(rows[0], FIELDS)
     missing = [key for key in MANDATORY if indices[key] is None]
     if missing:
         return [{'rule_id': 'IRP-RISK-SLA-HEADER', 'severity': 'major',

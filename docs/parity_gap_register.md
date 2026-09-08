@@ -1,6 +1,6 @@
 # Parity gap register
 
-This is the authoritative completion register. It prevents the migration from being represented as complete before the legacy workflows are ported and tested.
+This is the historical migration-scope record. The retired browser implementation is not required by, included in, or invoked by the current Python/NiceGUI platform.
 
 ## Migrated foundation
 
@@ -9,12 +9,12 @@ This is the authoritative completion register. It prevents the migration from be
 - Secure local-login/session/RBAC foundation, Turnstile verification adapter, password-reset email adapter, security audit logging, upload controls, Docker configuration, and server-side AFR Excel/Word/PDF generation.
 - NiceGUI pages for dashboard, audit setup, upload and scan, package checking, findings, live gap/correlation analysis, AFR generation/download, integration state, rule-library search, and administrator-only user creation. Each registered route has been smoke-tested after authenticated login.
 
-## Must still be ported before production parity sign-off
+## Deferred or intentionally retired scope
 
-- The Dashboard domain/session/practice-area/severity/status/date filters, real coverage score, domain table, and per-practice-area drill-down are now ported to NiceGUI and calculated from persisted MySQL audit data. Remaining work is the NC owner/comment/remediation workflow and the legacy dashboard's combined-gap export formats; neither is represented as complete in the UI.
-- The legacy package UI's recursive local-folder flow, complete GitHub/SharePoint/Google OAuth ingestion flow, and provider callback handling.
-- Remaining detailed edge cases from the legacy `incidentEngine.js`, `riskSlaEngine.js`, `rcaEngine.js`, `irpEngine.js`, `irpAudit.js`, `irpDataValidation.js`, and `irpIssueLogEngine.js`. Python now covers the 24-field headers, IDs, category, priority matrix, basic resolution SLA, chronology, RCA/5-Why, and lesson-learned register checks; every legacy edge case still requires fixture-by-fixture parity tests.
-- Exact evidence-keyword matching, knowledge-base assistant corpus/matching, correlation relationships, all legacy gap reports, and every non-AFR report format.
-- Database migrations (Alembic), full test coverage, and successful Python/Docker end-to-end verification.
+- The Dashboard domain/session/practice-area/severity/status/date filters, real coverage score, domain table, and per-practice-area drill-down are calculated from persisted MySQL audit data. NC owner/comment/remediation workflow and combined-gap export formats remain future Python/NiceGUI enhancements.
+- Recursive browser-folder flow, GitHub/SharePoint/Google imports, and duplicate practice-area validation imports are retired. Any future approved import capability must be added to Evidence Scan, not as a separate menu.
+- The former JavaScript validator edge cases were formally retired with the predecessor source. Python covers the 24-field headers, IDs, category, priority matrix, basic resolution SLA, chronology, RCA/5-Why, and lesson-learned register checks; further rule coverage must be implemented and tested in Python.
+- Exact evidence-keyword matching, knowledge-base assistant corpus/matching, correlation relationships, and non-AFR report formats remain product enhancements.
+- Database migrations (Alembic) and increased Python test coverage remain technical improvements.
 
-The legacy React/Vite files must stay out of production Docker images and may only be deleted after every row above is migrated, tested, and approved.
+The legacy React/Vite files, their Node dependencies, build output, manifests, and legacy tool permissions have been deleted. Docker starts only the Python ASGI application through `main:app`.

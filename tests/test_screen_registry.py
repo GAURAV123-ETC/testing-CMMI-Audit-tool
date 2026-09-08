@@ -3,6 +3,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.core.screen_registry import (
+    RETIRED_SCREEN_IDS,
     SCREEN_REGISTRY,
     ScreenDefinition,
     create_disabled_screen_mappings,
@@ -77,6 +78,21 @@ def test_read_only_and_write_without_read_rejection():
         set_role_screen_permission(db, role.id, 'findings', False, True)
 
 
+def test_inactive_screens_cannot_receive_role_permissions():
+    db = db_session()
+    role = Role(name='Reader')
+    db.add(role)
+    db.flush()
+    screens = (
+        ScreenDefinition('dashboard', 'Dashboard', '/', 'dashboard', 10, is_default_landing=True),
+        ScreenDefinition('retired', 'Retired', '/retired', 'block', 20, is_active=False),
+    )
+    sync_screen_registry(db, screens)
+
+    with pytest.raises(ValueError, match='inactive screen'):
+        set_role_screen_permission(db, role.id, 'retired', True, False)
+
+
 def test_default_landing_and_existing_routes_are_registered():
     db = db_session()
     role = Role(name='Reader')
@@ -87,3 +103,27 @@ def test_default_landing_and_existing_routes_are_registered():
     assert landing_url_for_user(db, user) == '/'
     routes = {screen.url for screen in SCREEN_REGISTRY}
     assert {'/add-project', '/evidence-scan', '/audit-workspace', '/reports'} <= routes
+
+
+def test_startup_disables_previously_persisted_retired_screens():
+    db = db_session()
+    db.add_all([
+        MdScreen(
+            screen_id=screen_id,
+            menu_name=screen_id,
+            url=f'/retired-{index}',
+            icon='block',
+            is_active=True,
+            is_default_landing=True,
+        )
+        for index, screen_id in enumerate(RETIRED_SCREEN_IDS)
+    ])
+    db.flush()
+
+    sync_screen_registry(db)
+
+    for screen_id in RETIRED_SCREEN_IDS:
+        screen = db.get(MdScreen, screen_id)
+        assert screen is not None
+        assert screen.is_active is False
+        assert screen.is_default_landing is False

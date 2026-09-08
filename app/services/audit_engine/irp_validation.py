@@ -1,8 +1,8 @@
 import json
 from datetime import datetime
 from pathlib import Path
-from app.services.document_processing.tabular import read_tabular_rows
-from app.services.audit_engine.header_matching import match_fields_exclusive, normalize_header
+from app.services.document_processing.tabular import select_tabular_table
+from app.services.audit_engine.header_matching import normalize_header
 
 _MAPPING_FILE = Path(__file__).parents[2] / 'db' / 'seed_data' / 'irp_field_mappings.json'
 _FIELD_DEFINITIONS = json.loads(_MAPPING_FILE.read_text(encoding='utf-8'))
@@ -45,8 +45,8 @@ def _meaningful(value) -> bool:
 
 def incident_context(path: str) -> tuple[set[str], set[str]]:
     """Return Incident Log IDs and IDs with a calculated response/resolution SLA breach."""
-    rows = read_tabular_rows(path)
-    mapped = match_fields_exclusive(rows[0] if rows else [], _FIELD_DEFINITIONS)
+    selection = select_tabular_table(path, _FIELD_DEFINITIONS)
+    rows, mapped = selection.rows, selection.field_indices
     response_index = next((index for index, header in enumerate(_normal(value) for value in (rows[0] if rows else []))
                            if header in RESPONSE_TIME_HEADERS), None)
     incident_ids, breached_ids = set(), set()
@@ -66,8 +66,8 @@ def incident_context(path: str) -> tuple[set[str], set[str]]:
             breached_ids.add(incident_id)
     return incident_ids, breached_ids
 def validate_incident_log(path: str) -> list[dict]:
-    rows = read_tabular_rows(path)
-    mapped = match_fields_exclusive(rows[0] if rows else [], _FIELD_DEFINITIONS)
+    selection = select_tabular_table(path, _FIELD_DEFINITIONS)
+    rows, mapped = selection.rows, selection.field_indices
     normalized_headers = [_normal(header) for header in (rows[0] if rows else [])]
     response_index = next((index for index, header in enumerate(normalized_headers) if header in RESPONSE_TIME_HEADERS), None)
     findings = [_finding('IRP-HEADER','major',f'Missing IRP column: {key}','Required Incident Log field was not found using configured synonym mapping.','Add the required field to the Incident Log.') for key,i in mapped.items() if i is None]

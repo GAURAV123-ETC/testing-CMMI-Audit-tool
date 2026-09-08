@@ -1,4 +1,4 @@
-y""Database-backed NiceGUI audit workflow pages."""
+"""Database-backed NiceGUI audit workflow pages."""
 from datetime import date
 from pathlib import Path
 
@@ -15,14 +15,10 @@ from app.db.models import (AuditProject, AuditSession, AuditSessionPracticeArea,
                            Finding, FindingEvidence, GeneratedReport, PracticeArea, Role, User)
 from app.gui.layout import layout
 from app.services.audit_engine.evidence_scan import scan_session
-from app.services.audit_engine.gap_analysis import build_gap_analysis
 from app.services.audit_engine.correlation_map import correlation_map
-from app.services.audit_engine.package_validation import validate_package
 from app.services.evidence_ingestion import persist_uploaded_evidence
 from app.services.auth.service import get_session_user
-from app.services.integrations.google_drive import drive_disabled_message, google_configured
-from app.services.integrations.microsoft_graph import graph_disabled_message, microsoft_configured
-from app.services.reports.afr_report import create_afr, create_gap_report
+from app.services.reports.afr_report import create_afr
 
 
 def _current_user_id() -> int:
@@ -75,8 +71,12 @@ def _options(model, label: str) -> dict[int, str]:
         return {row.id: str(getattr(row, label)) for row in db.scalars(select(model).order_by(getattr(model, label))).all()}
 
 
-def _table(columns: list[tuple[str, str]], rows: list[dict]) -> None:
-    ui.table(columns=[{'name': key, 'label': label, 'field': key, 'align': 'left'} for key, label in columns], rows=rows, row_key=columns[0][0]).classes('w-full')
+def _table(columns: list[tuple[str, str]], rows: list[dict], row_key: str | None = None) -> None:
+    ui.table(
+        columns=[{'name': key, 'label': label, 'field': key, 'align': 'left'} for key, label in columns],
+        rows=rows,
+        row_key=row_key or columns[0][0],
+    ).props("pagination={'rowsPerPage': 25, 'rowsPerPageOptions': [10, 25, 50, 100]}").classes('w-full')
 
 
 def register():
@@ -91,13 +91,11 @@ def register():
             return
         user_id = _current_user_id()
         customer_options, project_options, session_options = _options(Customer, 'name'), _options(AuditProject, 'name'), _options(AuditSession, 'id')
-        # Evidence Scan, Repository Scan, and PA Validation are dedicated
-        # legacy-equivalent modules in the left navigation. Keep Workspace
-        # focused on setup rather than presenting duplicate workflows.
+        # Evidence Scan is the single evidence workflow in the left navigation.
+        # Keep Workspace focused on setup rather than presenting duplicates.
         with ui.tabs().classes('hidden') as tabs:
             setup_tab = ui.tab('1. Audit setup')
             evidence_tab = ui.tab('2. Evidence & scan')
-            package_tab = ui.tab('Package checker')
         with ui.tab_panels(tabs, value=setup_tab).classes('w-full'):
             with ui.tab_panel(setup_tab):
                 ui.label('Create a customer, project, and audit session in this order. Then continue in Evidence Scan to upload the project documents folder.').classes('text-slate-600')
@@ -141,7 +139,7 @@ def register():
                         ui.label('New audit session').classes('text-lg font-bold')
                         session_project = ui.select(project_options, label='Project').classes('w-full')
                         session_name = ui.input('Audit name (optional)', placeholder='CMMI V3.0 Internal Audit').classes('w-full')
-                        session_date = ui.input('Audit date (optional)', placeholder='YYYY-MM-DD').classes('w-full')
+                        session_date = ui.input('Audit date (optional)').props('type=date').classes('w-full')
                         session_auditors = ui.input('Auditors (optional)', placeholder='Comma-separated names').classes('w-full')
                         session_auditees = ui.input('Auditees (optional)', placeholder='Comma-separated names').classes('w-full')
                         def create_session():
@@ -151,7 +149,7 @@ def register():
                             try:
                                 audit_date = date.fromisoformat(session_date.value) if session_date.value else None
                             except ValueError:
-                                ui.notify('Use YYYY-MM-DD for the audit date.', type='negative'); return
+                                ui.notify('Choose a valid audit date from the calendar.', type='negative'); return
                             with SessionLocal() as db:
                                 version = db.scalar(select(ChecklistVersion).where(ChecklistVersion.is_active.is_(True)))
                                 if not version: ui.notify('Checklist seed is missing.', type='negative'); return
@@ -211,22 +209,6 @@ def register():
                         uploader.disable(); scan_button.disable()
                 session_select.on('update:model-value', update_evidence_controls)
                 update_evidence_controls()
-            with ui.tab_panel(package_tab):
-                ui.label('Use this only for a folder already present on the server. For your own computer, upload files in Evidence & scan.').classes('text-slate-600')
-                package_path = ui.input('Server-local evidence folder path').classes('w-full')
-                results = ui.column().classes('w-full')
-                def check_package():
-                    results.clear(); root = Path(package_path.value or '')
-                    if not root.is_dir(): ui.notify('Enter an existing server-local folder path.', type='negative'); return
-                    allowed_root = get_settings().upload_dir.resolve()
-                    try:
-                        root.resolve().relative_to(allowed_root)
-                    except ValueError:
-                        ui.notify(f'For security, the folder must be inside {allowed_root}.', type='negative'); return
-                    with results:
-                        for row in validate_package(root): ui.label(f"{row['code']} — {row['status']} — {row['file_count']} files")
-                ui.button('Check package folders', on_click=check_package).props('outline')
-
     @ui.page(screen_url('findings'))
     def findings_page():
         layout('Findings', 'Generated findings are retained; a rerun supersedes earlier open findings.')
@@ -235,142 +217,6 @@ def register():
         with SessionLocal() as db: rows = db.scalars(select(Finding).order_by(Finding.created_at.desc())).all()
         if not rows: ui.label('No findings yet. Create an audit session, upload evidence, then run a scan.').classes('text-slate-600'); return
         _table([('id','ID'),('session','Session'),('practice_area','PA'),('severity','Severity'),('status','Status'),('title','Finding')], [{'id':f.id, 'session':f.audit_session_id, 'practice_area':f.practice_area_code, 'severity':f.severity, 'status':f.status, 'title':f.title} for f in rows])
-
-    @ui.page(screen_url('gap_analysis'))
-    def gap_analysis_page():
-        layout('Gap Analysis & Correlation', 'Filter persisted audit findings and generate audit reports.')
-        if not _require_any('findings:read', 'findings:write'):
-            return
-        with SessionLocal() as db:
-            practice_areas = [row.code for row in db.scalars(select(PracticeArea).order_by(PracticeArea.code)).all()]
-        ui.label('Filters').classes('text-lg font-bold')
-        with ui.row().classes('gap-3 flex-wrap items-end'):
-            selected = ui.select(_options(AuditSession, 'id'), label='Audit session (all)').classes('w-64')
-            pa_code = ui.select(practice_areas, multiple=True, label='Practice areas (all)').classes('w-56')
-            severity = ui.select(['critical', 'major', 'minor'], multiple=True, label='Severity (all)').classes('w-48')
-            status = ui.select(['open', 'in_progress', 'resolved', 'accepted_risk'], value=['open'], multiple=True, label='Status').classes('w-52')
-            from_date = ui.input('Created from').props('type=date').classes('w-40')
-            to_date = ui.input('Created to').props('type=date').classes('w-40')
-
-        def parse_date(value, label):
-            if not value:
-                return None
-            try:
-                return date.fromisoformat(value)
-            except ValueError:
-                raise ValueError(f'{label} must be a valid date.')
-
-        @ui.refreshable
-        def results():
-            try:
-                selected_id = int(selected.value) if selected.value else None
-                start = parse_date(from_date.value, 'Created from')
-                end = parse_date(to_date.value, 'Created to')
-                if start and end and start > end:
-                    raise ValueError('Created from cannot be later than Created to.')
-                with SessionLocal() as db:
-                    query = select(Finding).order_by(Finding.practice_area_code, Finding.severity, Finding.id)
-                    if selected_id:
-                        query = query.where(Finding.audit_session_id == selected_id)
-                    if pa_code.value:
-                        query = query.where(Finding.practice_area_code.in_(pa_code.value))
-                    if severity.value:
-                        query = query.where(Finding.severity.in_(severity.value))
-                    if status.value:
-                        query = query.where(Finding.status.in_(status.value))
-                    if start:
-                        query = query.where(Finding.created_at >= start)
-                    if end:
-                        query = query.where(Finding.created_at < date.fromordinal(end.toordinal() + 1))
-                    findings = db.scalars(query).all()
-            except ValueError as exc:
-                ui.label(str(exc)).classes('text-negative')
-                return
-
-            open_findings = [finding for finding in findings if finding.status == 'open']
-            summary = build_gap_analysis(open_findings)
-            correlations = correlation_map(findings)
-            with ui.row().classes('gap-4 flex-wrap'):
-                for label, value in [
-                    ('Matching findings', len(findings)),
-                    ('Open findings', len(open_findings)),
-                    ('Practice areas with open gaps', len(summary['by_practice_area'])),
-                    ('Critical open findings', summary['by_severity'].get('critical', 0)),
-                ]:
-                    with ui.card().classes('w-52'):
-                        ui.label(label).classes('text-slate-600')
-                        ui.label(str(value)).classes('text-3xl font-bold')
-            if not findings:
-                ui.label('No persisted findings match these filters. Upload evidence and run a scan to create findings.').classes('text-slate-600 mt-4')
-                return
-            ui.separator().classes('my-4')
-            ui.label('Matching findings').classes('text-lg font-bold')
-            _table(
-                [('id', 'ID'), ('session', 'Session'), ('practice_area', 'Practice area'), ('severity', 'Severity'), ('status', 'Status'), ('title', 'Finding')],
-                [{'id': finding.id, 'session': finding.audit_session_id, 'practice_area': finding.practice_area_code,
-                  'severity': finding.severity, 'status': finding.status, 'title': finding.title} for finding in findings],
-            )
-            ui.label('Practice-area correlation').classes('text-lg font-bold mt-4')
-            for code, items in correlations.items():
-                with ui.expansion(f'{code} — {len(items)} finding(s)').classes('w-full'):
-                    for item in items:
-                        finding = next(row for row in findings if row.id == item['id'])
-                        ui.label(f"#{finding.id} · {finding.rule_id or 'No linked rule'} · {finding.severity.upper()} · {finding.status}").classes('font-medium')
-                        ui.label(finding.title)
-                        ui.label(f'Description: {finding.description}').classes('text-slate-600')
-                        ui.label(f'Recommendation: {finding.recommendation}').classes('text-slate-600 mb-3')
-
-        def refresh_results():
-            results.refresh()
-
-        def generate_filtered_afr():
-            if not _require('reports:write'):
-                return
-            if not selected.value:
-                ui.notify('Select one audit session before generating a filtered AFR.', type='negative')
-                return
-            try:
-                start = parse_date(from_date.value, 'Created from')
-                end = parse_date(to_date.value, 'Created to')
-                if start and end and start > end:
-                    raise ValueError('Created from cannot be later than Created to.')
-                with SessionLocal() as db:
-                    report = create_afr(db, int(selected.value), _current_user_id(), 'xlsx',
-                                        practice_area_codes=pa_code.value or None,
-                                        severities=severity.value or None,
-                                        statuses=status.value or None,
-                                        from_date=start, to_date=end)
-                ui.notify(f'Filtered AFR generated: {Path(report.storage_path).name}', type='positive')
-            except Exception as exc:
-                ui.notify(str(exc), type='negative')
-
-        def generate_gap(fmt: str):
-            if not _require('reports:write'):
-                return
-            if not selected.value:
-                ui.notify('Select one audit session before generating a gap report.', type='negative')
-                return
-            try:
-                start = parse_date(from_date.value, 'Created from')
-                end = parse_date(to_date.value, 'Created to')
-                if start and end and start > end:
-                    raise ValueError('Created from cannot be later than Created to.')
-                with SessionLocal() as db:
-                    report = create_gap_report(db, int(selected.value), _current_user_id(), fmt,
-                                               practice_area_codes=pa_code.value or None,
-                                               severities=severity.value or None,
-                                               statuses=status.value or None,
-                                               from_date=start, to_date=end)
-                ui.notify(f'Gap report generated: {Path(report.storage_path).name}', type='positive')
-            except Exception as exc:
-                ui.notify(str(exc), type='negative')
-
-        with ui.row().classes('gap-3 my-4'):
-            ui.button('Apply filters', on_click=refresh_results).props('color=primary')
-            ui.button('Generate filtered AFR (.xlsx)', on_click=generate_filtered_afr).props('outline')
-            ui.button('Generate Gap Report (.xlsx)', on_click=lambda: generate_gap('xlsx')).props('outline')
-            ui.button('Generate Gap Report (.pdf)', on_click=lambda: generate_gap('pdf')).props('outline')
-        results()
 
     @ui.page(screen_url('correlation_map'))
     def correlation_page():
@@ -439,90 +285,6 @@ def register():
         ui.button('Apply filters', on_click=render_traceability.refresh).props('color=primary').classes('my-4')
         render_traceability()
 
-    @ui.page(screen_url('ai_guide'))
-    def ai_guide_page():
-        layout('CMMI AI Guide', 'Search the persisted CMMI rule library and use live audit findings for remediation guidance.')
-        if not _require_any('findings:read', 'findings:write'):
-            return
-        from app.db.models import CmmiRule
-        query = ui.input('Ask about a practice area, rule, audit check, or gap').classes('w-full max-w-2xl')
-        session_id = ui.select(_options(AuditSession, 'id'), label='Audit session context (optional)').classes('w-72')
-        conversation = ui.column().classes('w-full max-w-4xl gap-2')
-
-        def guidance_data(term: str) -> tuple[list, list]:
-            with SessionLocal() as db:
-                rules = db.scalars(select(CmmiRule).order_by(CmmiRule.practice_area_code, CmmiRule.rule_id)).all()
-                finding_query = select(Finding).where(Finding.status.in_(['open', 'in_progress'])).order_by(Finding.severity, Finding.id)
-                if session_id.value:
-                    finding_query = finding_query.where(Finding.audit_session_id == int(session_id.value))
-                findings = db.scalars(finding_query).all()
-            if term:
-                rules = [rule for rule in rules if term in f'{rule.rule_id} {rule.practice_area_code} {rule.level} {rule.audit_check} {rule.gap_text}'.lower()]
-                findings = [finding for finding in findings if term in f'{finding.rule_id or ""} {finding.practice_area_code} {finding.title} {finding.description} {finding.recommendation}'.lower()]
-            return rules, findings
-
-        def ask_guidance(question: str | None = None) -> None:
-            question = (question or query.value or '').strip()
-            if not question:
-                ui.notify('Enter a CMMI question first.', type='warning')
-                return
-            query.value = question
-            rules, findings = guidance_data(question.lower())
-            with conversation:
-                ui.label(question).classes('self-end max-w-2xl bg-blue-100 text-slate-900 p-3 rounded')
-                with ui.card().classes('max-w-3xl bg-slate-50'):
-                    ui.label('CMMI guidance (stored rules and live findings)').classes('font-bold')
-                    if not rules and not findings:
-                        ui.label('No stored rule or active finding matches this question. Try a practice-area code, rule ID, or audit term.').classes('text-slate-600')
-                    else:
-                        ui.label(f'{len(rules)} matching rule(s) and {len(findings)} active finding(s).').classes('text-slate-600')
-                        for rule in rules[:3]:
-                            ui.label(f'{rule.rule_id} — {rule.audit_check}').classes('font-medium mt-2')
-                            ui.label(rule.gap_text).classes('text-sm text-slate-600')
-                        for finding in findings[:3]:
-                            ui.label(f'Finding #{finding.id}: {finding.title}').classes('font-medium mt-2')
-                            ui.label(f'Recommended action: {finding.recommendation}').classes('text-sm text-slate-600')
-            render_guidance.refresh()
-
-        with ui.row().classes('w-full max-w-4xl gap-2 flex-wrap mt-3'):
-            ui.button('Ask guidance', icon='send', on_click=ask_guidance).props('color=primary')
-            for suggested in ('Show open critical gaps', 'Explain IRP requirements', 'How do I improve risk evidence?'):
-                ui.button(suggested, on_click=lambda value=suggested: ask_guidance(value)).props('outline').classes('text-sm')
-
-        @ui.refreshable
-        def render_guidance():
-            term = (query.value or '').strip().lower()
-            rules, findings = guidance_data(term)
-            ui.label('Guidance results are deterministic and cite the stored CMMI rule data; no invented AI response is used.').classes('text-slate-600')
-            with ui.row().classes('gap-4 flex-wrap mt-3'):
-                for label, value in [('Matching CMMI rules', len(rules)), ('Active audit findings', len(findings))]:
-                    with ui.card().classes('w-52'):
-                        ui.label(label).classes('text-slate-600')
-                        ui.label(str(value)).classes('text-3xl font-bold')
-            ui.label('CMMI guidance').classes('text-lg font-bold mt-5')
-            if not rules:
-                ui.label('No CMMI rules match the query. Search by a practice-area code, rule ID, or audit term.').classes('text-slate-600')
-            for rule in rules[:50]:
-                with ui.expansion(f'{rule.rule_id} — {rule.practice_area_code} — {rule.level}').classes('w-full'):
-                    ui.label('Audit check').classes('font-bold')
-                    ui.label(rule.audit_check)
-                    ui.label('Gap guidance').classes('font-bold mt-2')
-                    ui.label(rule.gap_text)
-            if len(rules) > 50:
-                ui.label('Showing the first 50 matching rules. Refine the query to narrow the result.').classes('text-slate-600')
-            ui.label('Audit-context remediation').classes('text-lg font-bold mt-5')
-            if not findings:
-                ui.label('No active persisted findings match the selected audit context.').classes('text-slate-600')
-            for finding in findings[:30]:
-                with ui.expansion(f'#{finding.id} — {finding.practice_area_code} — {finding.title}').classes('w-full'):
-                    ui.label(f'{finding.severity.upper()} · {finding.status} · {finding.rule_id or "No linked rule"}').classes('font-medium')
-                    ui.label(finding.description).classes('text-slate-600')
-                    ui.label('Recommended action').classes('font-bold mt-2')
-                    ui.label(finding.recommendation)
-
-        ui.button('Search guidance', on_click=render_guidance.refresh).props('color=primary').classes('my-4')
-        render_guidance()
-
     @ui.page(screen_url('reports'))
     def reports_page():
         layout('Reports', 'Generate persisted Audit Findings Reports (AFR) from an audit session.')
@@ -541,37 +303,27 @@ def register():
         with SessionLocal() as db: reports = db.scalars(select(GeneratedReport).order_by(GeneratedReport.created_at.desc())).all()
         if reports:
             ui.separator().classes('my-4'); ui.label('Generated reports').classes('text-lg font-bold')
-            for report in reports:
-                ui.link(f'#{report.id} — session {report.audit_session_id} — download {Path(report.storage_path).name}', f'/api/v1/reports/{report.id}/download').classes('block')
-
-    @ui.page(screen_url('rule_library'))
-    def rule_library_page():
-        layout('CMMI Rule Library', 'Search the 302 imported CMMI V3.0 checklist rules and their audit guidance.')
-        from app.db.models import CmmiRule
-        query = ui.input('Search rule ID, practice area, audit check, or gap guidance').classes('w-full')
-        results = ui.column().classes('w-full')
-        def search():
-            term = (query.value or '').strip().lower(); results.clear()
-            with SessionLocal() as db:
-                rules = db.scalars(select(CmmiRule).order_by(CmmiRule.practice_area_code, CmmiRule.rule_id)).all()
-            if term: rules = [rule for rule in rules if term in f'{rule.rule_id} {rule.practice_area_code} {rule.audit_check} {rule.gap_text}'.lower()]
-            with results:
-                ui.label(f'{len(rules)} matching rule(s)').classes('text-slate-600')
-                for rule in rules[:100]:
-                    with ui.expansion(f'{rule.rule_id} — {rule.practice_area_code} — {rule.level}').classes('w-full'):
-                        ui.label('Audit check').classes('font-bold'); ui.label(rule.audit_check)
-                        ui.label('Gap guidance').classes('font-bold mt-2'); ui.label(rule.gap_text)
-                if len(rules) > 100: ui.label('Showing the first 100 results. Refine the search to narrow them.').classes('text-slate-600')
-        ui.button('Search rules', on_click=search).props('color=primary')
-        search()
-
-    @ui.page(screen_url('integrations'))
-    def integrations_page():
-        layout('Integrations', 'Provider credentials are read only from server-side environment variables.')
-        entries = [('GitHub', True, 'Public repository scanning is available through the protected API.'), ('Microsoft Graph / SharePoint', microsoft_configured(), graph_disabled_message()), ('Google Drive', google_configured(), drive_disabled_message())]
-        for name, enabled, message in entries:
-            with ui.card().classes('w-full'):
-                ui.label(name).classes('text-lg font-bold'); ui.badge('Configured' if enabled else 'Not configured', color='positive' if enabled else 'warning'); ui.label(message or 'Configured and ready for OAuth authorization.').classes('text-slate-600')
+            report_rows = [{
+                'id': report.id,
+                'session': report.audit_session_id,
+                'type': report.report_type,
+                'file': Path(report.storage_path).name,
+                'created': report.created_at.strftime('%Y-%m-%d %H:%M UTC'),
+                'download_url': f'/api/v1/reports/{report.id}/download',
+            } for report in reports]
+            table = ui.table(columns=[
+                {'name': 'id', 'label': 'Report ID', 'field': 'id', 'align': 'right'},
+                {'name': 'session', 'label': 'Audit session', 'field': 'session', 'align': 'right'},
+                {'name': 'type', 'label': 'Type', 'field': 'type', 'align': 'left'},
+                {'name': 'file', 'label': 'File', 'field': 'file', 'align': 'left'},
+                {'name': 'created', 'label': 'Generated', 'field': 'created', 'align': 'left'},
+                {'name': 'download', 'label': 'Download', 'field': 'download', 'align': 'right'},
+            ], rows=report_rows, row_key='id').props("pagination={'rowsPerPage': 25, 'rowsPerPageOptions': [10, 25, 50, 100]}").classes('w-full')
+            table.add_slot('body-cell-download', '''
+                <q-td :props="props">
+                    <a :href="props.row.download_url" class="text-primary">Download</a>
+                </q-td>
+            ''')
 
     @ui.page(screen_url('user_administration'))
     def users_page():
@@ -582,17 +334,17 @@ def register():
         with SessionLocal() as db:
             users = db.scalars(select(User).options(selectinload(User.roles)).order_by(User.email)).all()
             roles = db.scalars(select(Role).order_by(Role.name)).all()
-            user_rows = [{'email':u.email, 'name':u.display_name, 'roles':', '.join(r.name for r in u.roles), 'active':'Yes' if u.is_active else 'No'} for u in users]
-        _table([('email','Email'),('name','Display name'),('roles','Roles'),('active','Active')], user_rows)
+            user_rows = [{'id': u.id, 'email': u.email, 'name': u.display_name, 'roles': ', '.join(r.name for r in u.roles), 'active': 'Yes' if u.is_active else 'No'} for u in users]
+        _table([('email','Email'),('name','Display name'),('roles','Roles'),('active','Active')], user_rows, row_key='id')
         ui.separator().classes('my-4'); ui.label('Create user').classes('text-lg font-bold')
-        email = ui.input('Email').classes('w-80'); name = ui.input('Display name').classes('w-80'); password = ui.input('Temporary password', password=True).classes('w-80'); role_select = ui.select([r.name for r in roles], value='Viewer', label='Role').classes('w-80')
+        email = ui.input('Email').classes('w-80'); name = ui.input('Display name').classes('w-80'); password = ui.input('Temporary password', password=True).classes('w-80'); role_options = {role.id: role.name for role in roles}; role_select = ui.select(role_options, value=next((role.id for role in roles if role.name == 'Viewer'), next(iter(role_options), None)), label='Role').classes('w-80')
         def create_user():
             try:
                 if not _require('*'): return
                 if not email.value or not name.value or not password.value or len(password.value) < 12: raise ValueError('Email, name, and a password of at least 12 characters are required.')
                 with SessionLocal() as db:
                     if db.scalar(select(User).where(User.email == email.value.lower())): raise ValueError('This email is already registered.')
-                    role = db.scalar(select(Role).where(Role.name == role_select.value))
+                    role = db.get(Role, int(role_select.value)) if role_select.value else None
                     if not role: raise ValueError('Select a valid role.')
                     db.add(User(email=email.value.lower(), display_name=name.value.strip(), password_hash=hash_password(password.value), roles=[role])); db.commit()
                 ui.notify('User created. Refresh this page to view the new account.', type='positive')
