@@ -10,8 +10,13 @@ from app.core.config import get_settings
 from app.db.database import SessionLocal
 from app.db.models import ChecklistVersion, CmmiRule, DocumentTypeRule
 from app.gui.layout import layout
-from app.gui.pages.audit_workspace import _allowed, _current_user_id
-from app.services.rule_catalog_importer import activate_rule_catalog, import_rule_catalog
+from app.gui.search import table_search_input
+from app.gui.pages.audit_workspace import _current_user_id, _screen_allowed
+from app.services.rule_catalog_importer import (
+    activate_rule_catalog,
+    import_document_catalogue_additions,
+    import_rule_catalog,
+)
 
 
 def _summary_text(summary: dict) -> str:
@@ -29,8 +34,8 @@ def register():
     @ui.page(screen_url('rule_catalog'))
     def rule_catalog_page():
         layout('Rules Catalogue', 'Manage the governed CMMI master workbook and browse the database-stored rules used by audit sessions.')
-        if not _allowed('*'):
-            ui.label('Only administrators can view and manage the rules catalogue.').classes('text-negative')
+        if not _screen_allowed('rule_catalog'):
+            ui.label('You do not have permission to view or manage the Rules Catalogue.').classes('text-negative')
             return
 
         def validated_options() -> dict[int, str]:
@@ -38,7 +43,7 @@ def register():
                 versions = db.scalars(select(ChecklistVersion).where(
                     ChecklistVersion.status == 'VALIDATED'
                 ).order_by(ChecklistVersion.created_at.desc())).all()
-            return {item.id: f'{item.version} — {item.source}' for item in versions}
+            return {item.id: f'{item.version} â€” {item.source}' for item in versions}
 
         def all_version_options() -> tuple[dict[int, str], int | None]:
             with SessionLocal() as db:
@@ -47,14 +52,14 @@ def register():
                 )).all()
                 active = next((item for item in versions if item.is_active), None)
             options = {
-                item.id: f'{item.version} — {item.status}' + (' (active)' if item.is_active else '')
+                item.id: f'{item.version} â€” {item.status}' + (' (active)' if item.is_active else '')
                 for item in versions
             }
             return options, active.id if active else next(iter(options), None)
 
-        with ui.tabs().classes('w-full max-w-6xl') as tabs:
-            manage_tab = ui.tab('Manage versions', icon='published_with_changes')
-            browse_tab = ui.tab('Browse stored rules', icon='menu_book')
+        with ui.tabs().classes('workflow-tabs w-full max-w-6xl') as tabs:
+            manage_tab = ui.tab('Manage versions', icon='published_with_changes').classes('workflow-tab workflow-tab-teal')
+            browse_tab = ui.tab('Browse stored rules', icon='menu_book').classes('workflow-tab workflow-tab-violet')
 
         with ui.tab_panels(tabs, value=manage_tab).classes('w-full max-w-6xl'):
             with ui.tab_panel(manage_tab):
@@ -80,8 +85,8 @@ def register():
                             ui.label('No active rulebook is available. Validate and activate the master workbook below.').classes('text-negative')
                         else:
                             rule_count, document_count = counts.get(active.id, (0, 0))
-                            ui.label(f'{active.version} • {active.source}').classes('font-medium mt-1')
-                            ui.label(f'{rule_count} rules • {document_count} document types • effective {active.effective_from or "not recorded"}').classes('text-sm text-slate-600')
+                            ui.label(f'{active.version} â€¢ {active.source}').classes('font-medium mt-1')
+                            ui.label(f'{rule_count} rules â€¢ {document_count} document types â€¢ effective {active.effective_from or "not recorded"}').classes('text-sm text-slate-600')
                             ui.label(f'Workbook checksum: {active.checksum}').classes('text-xs text-slate-500 break-all mt-1')
                             ui.label('Evidence Scan automatically applies this active version. Project users do not upload a rulebook.').classes('text-sm text-slate-600 mt-2')
                     ui.label('Workbook version history').classes('text-lg font-bold mt-5')
@@ -119,6 +124,8 @@ def register():
 
                     def upload_master(event) -> None:
                         try:
+                            if not _screen_allowed('rule_catalog', 'write'):
+                                raise PermissionError('Admin permission is required to import rules.')
                             limit = get_settings().max_upload_mb * 1024 * 1024
                             content = event.content.read(limit + 1)
                             if len(content) > limit:
@@ -143,6 +150,9 @@ def register():
                             ui.notify(f'Rules upload rejected: {exc}', type='negative')
 
                     def activate_selected() -> None:
+                        if not _screen_allowed('rule_catalog', 'write'):
+                            ui.notify('Admin permission is required to activate rules.', type='negative')
+                            return
                         if not activation_select.value:
                             ui.notify('Select a validated version first.', type='warning')
                             return
@@ -164,12 +174,47 @@ def register():
                     ui.button('Activate selected validated version', icon='published_with_changes', on_click=activate_selected).props('color=primary').classes('mt-3')
                     refresh_candidates()
 
+                with ui.card().classes('w-full mt-5'):
+                    ui.label('Update keys for an approved document/evidence type').classes('text-lg font-bold')
+                    ui.label('The active catalogue is fixed to the approved 14 document types. This upload can merge additional keys, aliases, and expected-evidence wording into an existing approved type; it cannot add a type or change a practice-area mapping.').classes('text-sm text-slate-600')
+                    ui.label('Required columns: Document / Evidence, Related Practice Area, What to Check / Key Points, Expected Evidence. The document name and practice area must match its approved entry.').classes('text-sm text-slate-600 mt-2')
+                    ui.label('This changes the active ruleset version directly, so future scans for sessions pinned to this version will use the updated keys.').classes('text-sm text-amber-800 mt-2')
+
+                    def upload_document_additions(event) -> None:
+                        try:
+                            if not _screen_allowed('rule_catalog', 'write'):
+                                raise PermissionError('Admin permission is required to update approved catalogue entries.')
+                            limit = get_settings().max_upload_mb * 1024 * 1024
+                            content = event.content.read(limit + 1)
+                            if len(content) > limit:
+                                raise ValueError('Document catalogue workbook exceeds the configured upload limit.')
+                            with SessionLocal() as db:
+                                imported = import_document_catalogue_additions(db, event.name, content)
+                                log_action(db, 'rule_catalog_document_additions_imported', user_id=_current_user_id(),
+                                           entity_type='checklist_version', entity_id=str(imported['checklist_version_id']),
+                                           detail=json.dumps({'filename': event.name, **imported}, sort_keys=True))
+                                db.commit()
+                            overview.refresh(); refresh_browse_versions()
+                            ui.notify(
+                                f"Updated {imported['version']}: {imported['document_types_updated']} approved entries merged, "
+                                f"{imported['document_types_unchanged']} unchanged.",
+                                type='positive',
+                            )
+                        except Exception as exc:
+                            ui.notify(f'Document catalogue import rejected: {exc}', type='negative')
+
+                    ui.upload(on_upload=upload_document_additions, auto_upload=True,
+                              max_file_size=get_settings().max_upload_mb * 1024 * 1024,
+                              label='Upload approved document/evidence key updates').props('accept=.xlsx').classes('w-full max-w-3xl mt-3')
+
             with ui.tab_panel(browse_tab):
                 ui.label('Browse stored CMMI rules').classes('text-xl font-bold mt-4')
                 ui.label('These are the database records imported through Manage versions. The active version is selected by default; select a historical version to review its rules without changing any audit session.').classes('text-sm text-slate-600')
                 versions, default_version = all_version_options()
                 version_select = ui.select(versions, value=default_version, label='Ruleset version').classes('w-full max-w-3xl mt-3')
-                query = ui.input('Search rule ID, practice area, audit check, or gap guidance').classes('w-full mt-3')
+                query = table_search_input(
+                    'Search stored rules', 'Rule ID, practice area, audit check, or gap guidance'
+                ).classes('mt-3')
                 results = ui.column().classes('w-full mt-3')
 
                 def search_rules() -> None:
@@ -225,5 +270,6 @@ def register():
                     search_rules()
 
                 version_select.on('update:model-value', search_rules)
+                query.on_value_change(lambda _: search_rules())
                 ui.button('Search stored rules', icon='search', on_click=search_rules).props('color=primary').classes('mt-3')
                 search_rules()

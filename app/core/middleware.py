@@ -15,10 +15,13 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # otherwise render an empty shell without showing the actual page.
         # A production CSP is still applied when ENVIRONMENT=production.
         if get_settings().environment.lower() == 'production':
+            turnstile_origin = ' https://challenges.cloudflare.com' if get_settings().turnstile_enabled else ''
             response.headers['Content-Security-Policy'] = (
                 "default-src 'self'; img-src 'self' data:; "
-                "style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; "
-                "connect-src 'self' wss:"
+                "style-src 'self' 'unsafe-inline'; "
+                f"script-src 'self' 'unsafe-inline'{turnstile_origin}; "
+                f"frame-src 'self'{turnstile_origin}; "
+                f"connect-src 'self' wss:{turnstile_origin}"
             )
         return response
 

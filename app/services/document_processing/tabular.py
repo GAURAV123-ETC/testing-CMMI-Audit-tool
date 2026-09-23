@@ -11,6 +11,11 @@ MAX_CONSECUTIVE_EMPTY_ROWS = 200
 MAX_LEADING_EMPTY_ROWS = 1_000
 
 
+def cell_text(value: object) -> str:
+    """Render a cell without treating valid zero values as blank."""
+    return '' if value is None else str(value)
+
+
 def _meaningful_rows(rows):
     """Retain populated rows without walking arbitrarily formatted tails.
 
@@ -22,7 +27,7 @@ def _meaningful_rows(rows):
     result, empty_rows = [], 0
     for row in rows:
         values = list(row)
-        if any(str(value or '').strip() for value in values):
+        if any(cell_text(value).strip() for value in values):
             result.append(values)
             empty_rows = 0
         else:
@@ -59,9 +64,12 @@ def read_tabular_sheets(path: str, *, data_only: bool = True) -> list[tuple[str,
         workbook = xlrd.open_workbook(source)
         return [(sheet.name, _meaningful_rows(sheet.row_values(index) for index in range(sheet.nrows)))
                 for sheet in workbook.sheets()]
-    workbook = load_workbook(source, read_only=True, data_only=data_only)
-    return [(sheet.title, _meaningful_rows(sheet.iter_rows(values_only=True)))
-            for sheet in workbook.worksheets]
+    workbook = load_workbook(source, read_only=True, data_only=data_only, keep_links=False)
+    try:
+        return [(sheet.title, _meaningful_rows(sheet.iter_rows(values_only=True)))
+                for sheet in workbook.worksheets]
+    finally:
+        workbook.close()
 
 
 def read_tabular_rows(path: str) -> list[list]:
@@ -75,16 +83,16 @@ def read_tabular_rows(path: str) -> list[list]:
 
 
 def select_tabular_table(path: str, fields: list[dict], required_fields: tuple[str, ...] = (),
-                         header_search_rows: int = 100) -> TabularSelection:
+                         header_search_rows: int = 100, *, data_only: bool = True) -> TabularSelection:
     """Select the worksheet and header row that best match a governed schema."""
     best: TabularSelection | None = None
     best_score = (-1, -1, -1)
-    for sheet_name, sheet_rows in read_tabular_sheets(path):
+    for sheet_name, sheet_rows in read_tabular_sheets(path, data_only=data_only):
         for row_index, headers in enumerate(sheet_rows[:header_search_rows]):
             indices = match_fields_exclusive(headers, fields)
             required_matches = sum(indices.get(key) is not None for key in required_fields)
             matches = sum(index is not None for index in indices.values())
-            populated = sum(bool(str(value or '').strip()) for value in headers)
+            populated = sum(bool(cell_text(value).strip()) for value in headers)
             score = (required_matches, matches, populated)
             if score > best_score:
                 best_score = score

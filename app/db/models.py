@@ -26,6 +26,12 @@ class Role(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(64), unique=True)
     description: Mapped[str] = mapped_column(String(255), default='')
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    # Optional per-role landing page. The application validates that the
+    # selected screen is active and readable by this role before it is saved.
+    default_screen_id: Mapped[str | None] = mapped_column(
+        ForeignKey('md_screen.screen_id'), nullable=True
+    )
     users: Mapped[list[User]] = relationship(secondary='user_roles', back_populates='roles')
     permissions: Mapped[list['Permission']] = relationship(secondary='role_permissions', back_populates='roles')
 
@@ -124,6 +130,44 @@ class PracticeArea(Base):
     code: Mapped[str] = mapped_column(String(20), unique=True)
     name: Mapped[str] = mapped_column(String(255))
     required_folder: Mapped[bool] = mapped_column(Boolean, default=True)
+    # CMMI v3 structure attributes are reference data, not audit outcomes.
+    # They make the dashboard taxonomy queryable and safely updateable.
+    category: Mapped[str | None] = mapped_column(String(64))
+    capability_area: Mapped[str | None] = mapped_column(String(255))
+    max_practice_group_level: Mapped[int | None] = mapped_column(Integer)
+    total_practices: Mapped[int | None] = mapped_column(Integer)
+    is_core: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+
+class CmmiDomain(Base):
+    __tablename__ = 'cmmi_domains'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    code: Mapped[str] = mapped_column(String(20), unique=True)
+    name: Mapped[str] = mapped_column(String(160))
+    capability_description: Mapped[str] = mapped_column(Text)
+    display_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+
+class CmmiModelProfile(Base):
+    __tablename__ = 'cmmi_model_profiles'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    model_version: Mapped[str] = mapped_column(String(64), unique=True)
+    source: Mapped[str] = mapped_column(String(255))
+    total_domains: Mapped[int] = mapped_column(Integer)
+    total_practice_areas: Mapped[int] = mapped_column(Integer)
+    core_practice_area_count: Mapped[int] = mapped_column(Integer)
+    domain_specific_practice_area_count: Mapped[int] = mapped_column(Integer)
+    practice_group_levels: Mapped[str] = mapped_column(Text)
+    maturity_levels: Mapped[str] = mapped_column(Text)
+
+
+class CmmiDomainPracticeArea(Base):
+    __tablename__ = 'cmmi_domain_practice_areas'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    domain_id: Mapped[int] = mapped_column(ForeignKey('cmmi_domains.id', ondelete='CASCADE'), index=True)
+    practice_area_id: Mapped[int] = mapped_column(ForeignKey('practice_areas.id', ondelete='CASCADE'), index=True)
+    display_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    __table_args__ = (UniqueConstraint('domain_id', 'practice_area_id', name='uq_cmmi_domain_practice_area'),)
 
 class CmmiRule(Base):
     __tablename__ = 'cmmi_rules'
@@ -134,6 +178,15 @@ class CmmiRule(Base):
     level: Mapped[str] = mapped_column(String(32))
     audit_check: Mapped[str] = mapped_column(Text)
     gap_text: Mapped[str] = mapped_column(Text)
+    # SAP field controls are linked to one approved evidence type.  Legacy
+    # CMMI rules leave this null and continue to be scoped by practice area.
+    document_type_rule_id: Mapped[int | None] = mapped_column(
+        ForeignKey('document_type_rules.id'), index=True
+    )
+    applicability_condition: Mapped[str | None] = mapped_column(String(500))
+    detection: Mapped[str | None] = mapped_column(Text)
+    recommendation: Mapped[str | None] = mapped_column(Text)
+    is_mandatory: Mapped[bool | None] = mapped_column(Boolean, default=True)
     __table_args__ = (UniqueConstraint('checklist_version_id', 'rule_id', name='uq_rule_version_id'),)
 
 class DocumentTypeRule(Base):
@@ -146,6 +199,10 @@ class DocumentTypeRule(Base):
     aliases: Mapped[list] = mapped_column(JSON, default=list)
     expected_evidence: Mapped[str | None] = mapped_column(Text)
     primary_purpose: Mapped[str | None] = mapped_column(Text)
+    # Additive document catalogues may be explicitly approved for AFR scope.
+    # Existing/master catalogue entries remain visible in the workspace but do
+    # not become reportable merely because they have a document-type match.
+    include_in_afr: Mapped[bool] = mapped_column(Boolean, default=False)
     __table_args__ = (UniqueConstraint('checklist_version_id', 'document_type', name='uq_document_type_version'),)
 
 class AuditSession(Timestamped, Base):
@@ -216,12 +273,23 @@ class Finding(Timestamped, Base):
     __tablename__ = 'findings'
     id: Mapped[int] = mapped_column(primary_key=True)
     audit_session_id: Mapped[int] = mapped_column(ForeignKey('audit_sessions.id'), index=True)
+    # Explicit scope prevents file-backed checklist observations from leaking
+    # into the governed document-catalogue AFR.
+    finding_kind: Mapped[str] = mapped_column(String(32), default='rule_assessment', index=True)
+    document_type_rule_id: Mapped[int | None] = mapped_column(
+        ForeignKey('document_type_rules.id'), index=True
+    )
     rule_id: Mapped[str | None] = mapped_column(String(64), index=True)
     practice_area_code: Mapped[str] = mapped_column(String(20), index=True)
     severity: Mapped[str] = mapped_column(String(16), default='major')
     title: Mapped[str] = mapped_column(String(500))
     description: Mapped[str] = mapped_column(Text)
     recommendation: Mapped[str] = mapped_column(Text)
+    # Immutable key-level evidence assessment captured when the finding is
+    # created. JSON arrays scale without a comma-delimited parsing contract.
+    required_keys: Mapped[list | None] = mapped_column(JSON)
+    available_keys: Mapped[list | None] = mapped_column(JSON)
+    missing_required_keys: Mapped[list | None] = mapped_column(JSON)
     status: Mapped[str] = mapped_column(String(32), default='open')
     created_by_id: Mapped[int | None] = mapped_column(ForeignKey('users.id'))
 

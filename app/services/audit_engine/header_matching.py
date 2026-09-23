@@ -3,7 +3,8 @@ import re
 
 
 def normalize_header(value) -> str:
-    return ' '.join(re.sub(r'[^a-zA-Z0-9&/ ]', ' ', re.sub(r'\(.*?\)', ' ', str(value or ''))).lower().split())
+    text = '' if value is None else str(value)
+    return ' '.join(re.sub(r'[^a-zA-Z0-9&/ ]', ' ', re.sub(r'\(.*?\)', ' ', text)).lower().split())
 
 
 def _singular(value: str) -> str:

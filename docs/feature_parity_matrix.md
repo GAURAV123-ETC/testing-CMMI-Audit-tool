@@ -5,7 +5,7 @@
 | Dashboard | NiceGUI dashboard with persisted counts |
 | Audit information / customer / project / session setup | NiceGUI Add Project with persisted customer, project, and audit-session records |
 | Local evidence upload and scan | NiceGUI Evidence & Scan tab; upload controls and persisted 302-rule scan |
-| Findings dashboard | NiceGUI Dashboard and Findings pages backed by persisted findings and correlation service |
+| Findings dashboard | NiceGUI Dashboard and Findings pages backed by persisted findings |
 | Rule / CMMI knowledge search | Rules Catalogue's Browse stored rules tab searches the imported, versioned database checklist |
 | User registration | Administrator-only NiceGUI Users page; public registration intentionally absent |
 | Folder/package scan | Retired; customer files and ZIP archives are uploaded and scanned in Evidence Scan |
@@ -15,7 +15,6 @@
 | AFR Excel/Word/PDF | persisted server-side AFR generator |
 | Local uploads | protected API with filename/type/size checks |
 | Repository / cloud-drive imports | Retired; customer evidence is uploaded through the single Evidence Scan workflow |
-| Finding correlation | persisted findings and evidence correlation map |
 
 The supported application has no live repository or cloud-provider integration.
 

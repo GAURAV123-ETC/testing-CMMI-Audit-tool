@@ -4,7 +4,39 @@ from sqlalchemy.orm import sessionmaker
 from app.db.database import Base
 from app.db.models import (AuditProject, AuditSession, ChecklistVersion, Customer,
                            EvidenceFile, EvidenceSource, PracticeArea)
-from app.gui.pages.evidence_scan import AUTO_SESSION_NAME, _ensure_scan_session, _workspace_context
+from app.gui.pages.evidence_scan import (
+    AUTO_SESSION_NAME,
+    _ensure_scan_session,
+    _update_ui_if_client_alive,
+    _workspace_context,
+)
+
+
+def test_post_scan_ui_updates_are_skipped_for_a_deleted_client():
+    class Client:
+        _deleted = True
+
+    called = False
+
+    def update() -> None:
+        nonlocal called
+        called = True
+
+    assert not _update_ui_if_client_alive(Client(), update)
+    assert not called
+
+
+def test_post_scan_ui_update_handles_client_deletion_during_update():
+    class Client:
+        _deleted = False
+
+    client = Client()
+
+    def update() -> None:
+        client._deleted = True
+        raise RuntimeError('The client this element belongs to has been deleted.')
+
+    assert not _update_ui_if_client_alive(client, update)
 
 
 def test_ruleset_change_creates_internal_run_and_reuses_project_evidence():

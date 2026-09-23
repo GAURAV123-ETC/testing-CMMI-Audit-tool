@@ -23,6 +23,27 @@ from app.db.models import (
 )
 from app.gui.layout import layout
 from app.gui.pages.audit_workspace import _current_user_id, _screen_allowed
+from app.gui.search import table_search_input
+
+
+SAVED_DETAILS_SEARCHABLE_COLUMNS = (
+    'id', 'customer', 'project', 'repository', 'audit_session',
+    'audit_date', 'auditors', 'auditees', 'ruleset', 'created',
+)
+
+
+def _filter_saved_details(rows: list[dict], query: str | None) -> list[dict]:
+    """Return saved-detail rows matching a case-insensitive, cross-column query."""
+    search_text = str(query or '').strip().casefold()
+    if not search_text:
+        return rows
+    return [
+        row for row in rows
+        if search_text in ' '.join(
+            str(row.get(column, '') or '').casefold()
+            for column in SAVED_DETAILS_SEARCHABLE_COLUMNS
+        )
+    ]
 
 
 def register():
@@ -199,7 +220,16 @@ def register():
                         'ruleset': session.checklist_version_id,
                         'created': session.created_at.strftime('%Y-%m-%d %H:%M UTC'),
                     })
+            search_text = str(saved_details_search.value or '').strip()
+            rows = _filter_saved_details(rows, search_text)
             ui.label('Saved details').classes('text-lg font-bold mt-5')
+            if not rows:
+                empty_message = (
+                    'No saved project details match the current search.'
+                    if search_text else 'No saved project details have been added yet.'
+                )
+                ui.label(empty_message).classes('text-slate-600 mt-2')
+                return
             table = ui.table(columns=[
                 {'name': 'customer', 'label': 'Customer', 'field': 'customer', 'align': 'left'},
                 {'name': 'project', 'label': 'Project', 'field': 'project', 'align': 'left'},
@@ -211,7 +241,9 @@ def register():
                 {'name': 'ruleset', 'label': 'Ruleset ID', 'field': 'ruleset', 'align': 'right'},
                 {'name': 'created', 'label': 'Added', 'field': 'created', 'align': 'left'},
                 {'name': 'actions', 'label': 'Actions', 'field': 'actions', 'align': 'right'},
-            ], rows=rows, row_key='id').props("pagination={'rowsPerPage': 10}").classes('w-full max-w-7xl')
+            ], rows=rows, row_key='id').props(
+                "pagination={'rowsPerPage': 10, 'rowsPerPageOptions': [10, 25, 50, 100]}"
+            ).classes('w-full max-w-7xl')
             table.add_slot('body-cell-actions', '''
                 <q-td :props="props" class="q-gutter-xs">
                     <q-btn flat round dense icon="edit" color="primary" aria-label="Edit saved project details"
@@ -226,6 +258,11 @@ def register():
         with ui.row().classes('w-full max-w-7xl items-center justify-between mt-4'):
             ui.label('Saved customers, projects, and audit sessions').classes('text-lg font-bold')
             ui.button('Add Project', icon='add_business', on_click=lambda: add_project_dialog.open()).props('color=primary')
+        saved_details_search = table_search_input(
+            'Search saved project details',
+            'Customer, project, repository, audit session, auditor, or date',
+            on_change=lambda _: saved_details.refresh(),
+        ).classes('mt-2')
 
         with ui.dialog() as add_project_dialog, ui.card().classes('w-[1000px] max-w-full'):
             ui.label('Add customer, project, and audit session').classes('text-xl font-bold')
