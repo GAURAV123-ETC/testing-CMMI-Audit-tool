@@ -14,7 +14,7 @@ from app.services.evidence_ingestion import (
 from app.services.document_processing.tabular import cell_text, read_tabular_sheets
 from app.services.audit_engine.evidence_validation import (
     build_tabular_context, classify_document, generate_gap_report,
-    tabular_context_summary, validate_evidence,
+    rule_artifact_scope, tabular_context_summary, validate_evidence,
 )
 
 
@@ -81,6 +81,36 @@ def _document_structure(path: str) -> dict:
                 'headers': headers, 'header_rows': header_rows, 'populated_rows': populated_rows}
     except Exception:
         return {'is_spreadsheet': True, 'headers': [], 'populated_rows': 0}
+
+
+def _rule_has_assessable_uploaded_scope(rule: dict, classifications: list[dict]) -> bool:
+    """Keep combined-artifact controls out of a project result when absent.
+
+    ``Change Log / FSD`` is a single approved catalogue type with two schema
+    subtypes.  If the upload conclusively identifies only one subtype, the
+    other subtype's controls are *not assessed*—they are not missing evidence
+    in the uploaded subtype.  An unknown subtype remains conservative and
+    keeps all controls in scope so incomplete classification never hides a
+    finding.
+    """
+    document_type_rule_id = rule.get('document_type_rule_id')
+    matching = [
+        item for item in classifications
+        if item.get('document_type_rule_id') == document_type_rule_id
+    ]
+    if not matching:
+        return False
+    required_scope = rule_artifact_scope(rule.get('rule_id'), matching[0].get('detected_type'))
+    if required_scope is None:
+        return True
+    # A mixed upload can contain a confidently typed FSD plus another file
+    # that belongs to the combined catalogue but whose subtype is unknown.
+    # The unknown file may still be a Change Log, so retain all controls in
+    # scope rather than allowing the known FSD to conceal it.
+    if any(not item.get('artifact_scope') for item in matching):
+        return True
+    known_scopes = {item.get('artifact_scope') for item in matching}
+    return not known_scopes or required_scope in known_scopes
 
 
 def _load_catalog(db: Session, checklist_version_id: int) -> tuple[list[dict], list[dict]]:
@@ -223,12 +253,42 @@ def scan_session(db: Session, audit_session_id: int, user_id: int) -> dict:
         }
         # SAP controls are tied to one evidence type.  Legacy CMMI rules
         # remain area-scoped, but must not leak into a document-specific scan.
+        scoped_classifications = [
+            validation['classification'] for _, validation in validations
+            if (validation['classification'].get('document_type_rule_id')
+                and validation['classification'].get('afr_eligible')
+                and validation['classification'].get('document_role') == 'PROJECT_IMPLEMENTATION_EVIDENCE')
+        ]
         scoped_rules = [rule for rule in rules if (
-            rule.get('document_type_rule_id') in scoped_document_type_ids
+            _rule_has_assessable_uploaded_scope(rule, scoped_classifications)
             if rule.get('document_type_rule_id') is not None
             else rule['practice_area'] in scoped_practice_areas
         )]
         report = generate_gap_report([validation for _, validation in validations], scoped_rules)
+        # A successful scan must account for every control that is in scope.
+        # This invariant turns an accidental validation omission into a visible
+        # scan failure instead of silently producing a deceptively clean AFR.
+        scoped_rule_ids = {str(rule['rule_id']) for rule in scoped_rules}
+        assessed_rule_ids = {str(result['rule_id']) for result in report['rule_results']}
+        omitted_rule_ids = sorted(scoped_rule_ids - assessed_rule_ids)
+        if omitted_rule_ids:
+            raise RuntimeError(
+                'The master-control assessment was incomplete for: '
+                + ', '.join(omitted_rule_ids)
+            )
+        unmatched_document_types = [
+            document_type for document_type in document_types
+            if document_type['document_type_rule_id'] not in scoped_document_type_ids
+        ]
+        assessment_coverage = {
+            'master_controls_total': len(rules),
+            'controls_in_uploaded_document_scope': len(scoped_rule_ids),
+            'controls_assessed': len(assessed_rule_ids),
+            'controls_not_in_file_scope': len(rules) - len(scoped_rule_ids),
+            'governed_document_types_total': len(document_types),
+            'matched_document_types': len(document_types) - len(unmatched_document_types),
+            'unmatched_document_types': [item['document_type'] for item in unmatched_document_types],
+        }
         db.execute(update(Finding).where(Finding.audit_session_id == audit_session_id, Finding.status == 'open').values(status='superseded'))
         results: list[tuple[object, list[int]]] = []
 
@@ -236,16 +296,44 @@ def scan_session(db: Session, audit_session_id: int, user_id: int) -> dict:
                           finding_kind: str = 'rule_assessment',
                           document_type_rule_id: int | None = None) -> None:
             status = result['status']
+            is_review_required = status == 'REVIEW_REQUIRED'
             available_keys = _unique_nonblank_keys(result.get('found_evidence'))
             missing_required_keys = _unique_nonblank_keys(result.get('missing_evidence'))
             required_keys = _unique_nonblank_keys(result.get('required_evidence'))
             if not required_keys:
                 required_keys = _unique_nonblank_keys([result.get('detection'), result.get('audit_check')])
+            integrity_markers = (
+                'duplicate value', 'invalid', 'blank value', 'non-numeric',
+                'no affirmative value',
+            )
+            is_integrity_issue = any(
+                marker in key.casefold()
+                for key in missing_required_keys for marker in integrity_markers
+            )
+            if result.get('title'):
+                title = result['title']
+            elif is_review_required:
+                title = f'Auditor review required (not a confirmed gap) for {result["rule_id"]}'
+            elif is_integrity_issue:
+                title = f'Data integrity issue for {result["rule_id"]}'
+            else:
+                title = f"{status.title()} evidence for {result['rule_id']}"
+            description = result['gap_text']
+            if is_integrity_issue:
+                description = (
+                    'The uploaded evidence contains a governed field-level data-quality issue: '
+                    f"{'; '.join(missing_required_keys)}. Control: {result.get('audit_check') or result['rule_id']}"
+                )
             results.append((type('R', (), {'rule_id':result['rule_id'], 'practice_area':result['practice_area'],
-                'finding_kind': finding_kind, 'document_type_rule_id': document_type_rule_id,
+                # Review-required rows remain auditable evidence records, but
+                # are categorically distinct from confirmed gaps. This avoids
+                # relying on a human-readable title to keep them out of the
+                # AFR source-of-truth summary.
+                'finding_kind': 'review_required' if is_review_required else finding_kind,
+                'document_type_rule_id': document_type_rule_id,
                 'severity':'major' if status in {'MISSING','BLOCKED'} else 'minor',
-                'title':result.get('title') or f"{status.title()} evidence for {result['rule_id']}",
-                'description':result['gap_text'],
+                'title': title,
+                'description': description,
                 'recommendation':result['recommendation'], 'required_keys':required_keys,
                 'available_keys':available_keys, 'missing_required_keys':missing_required_keys})(), evidence_file_ids))
 
@@ -373,7 +461,8 @@ def scan_session(db: Session, audit_session_id: int, user_id: int) -> dict:
                             'evidence_findings_created': evidence_findings_created,
                             'coverage_gaps_created': coverage_gaps_created,
                             'duplicate_files_skipped': duplicate_files_skipped,
-                            'gap_summary':report['gap_summary']}
+                            'gap_summary':report['gap_summary'],
+                            'assessment_coverage': assessment_coverage}
         log_action(db, 'evidence_scan_completed', user_id=user_id, entity_type='audit_session',
                    entity_id=str(audit_session_id), detail=(
                        f'scan_job_id={job_id}; files_processed={len(files)}; findings_created={len(results)}; '
@@ -385,7 +474,8 @@ def scan_session(db: Session, audit_session_id: int, user_id: int) -> dict:
                 'evidence_findings_created': evidence_findings_created,
                 'coverage_gaps_created': coverage_gaps_created,
                 'duplicate_files_skipped': duplicate_files_skipped,
-                'scan_job_id':job_id, 'gap_summary':report['gap_summary']}
+                'scan_job_id':job_id, 'gap_summary':report['gap_summary'],
+                'assessment_coverage': assessment_coverage}
     except Exception as exc:
         db.rollback()
         failed_job=db.get(ScanJob, job_id)

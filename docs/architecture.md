@@ -40,7 +40,7 @@ Right now the app is only run locally for development/testing — nothing is dep
    pip install -r requirements.txt
    python main.py
    ```
-4. Open the browser at `http://localhost:8010` — this hits the same process that serves both the UI pages and the API.
+4. Open the browser at `http://localhost:8090` — this hits the same process that serves both the UI pages and the API.
 5. On first startup, the app automatically creates all database tables and seeds the base data (roles, CMMI practice areas, and the initial rule checklist). On an empty database, `/login` presents a one-time first-administrator registration form. Once any account exists, public registration is permanently unavailable and administrators create subsequent accounts through Manage Users.
 6. Tests: `pytest -q` runs the automated test suite (uses a throwaway SQLite database, so it doesn't touch your local MySQL data).
 

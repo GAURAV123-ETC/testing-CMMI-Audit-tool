@@ -1,5 +1,5 @@
 from app.services.audit_engine.evidence_validation import (
-    _condition_applies, classify_document, generate_gap_report, validate_evidence,
+    _condition_applies, build_tabular_context, classify_document, generate_gap_report, validate_evidence,
 )
 from app.services.audit_engine.document_classification import classify_document as classify_document_candidates
 
@@ -68,6 +68,86 @@ def test_sparse_effort_tracking_sheet_maps_from_approved_filename_and_variance_h
     })
     assert result['detected_type'] == 'Tracking of actual efforts against planned'
     assert result['practice_areas'] == ['EST']
+
+
+def test_irp_filename_and_issue_log_schema_outrank_an_incidental_defect_tab():
+    catalogue = [
+        {'document_type': 'Incident Log – 2 Months', 'practice_areas': ['IRP'],
+         'keywords': ['Incident ID', 'Date', 'Priority', 'Impact', 'Urgency', 'Category', 'SLA', 'Resolution', 'Status'],
+         'aliases': ['Issue Log', 'Issue Register', 'IRP'], 'include_in_afr': True},
+        {'document_type': 'Testing Defects', 'practice_areas': ['VV'],
+         'keywords': ['Defect ID', 'Severity', 'Priority', 'Root Cause', 'Status', 'Fix', 'Retest', 'Closure'],
+         'include_in_afr': True},
+    ]
+    issue_headers = ['Issue ID', 'Issue Date', 'Issue Status', 'Issue Category', 'Issue Description',
+                     'Impact', 'Priority Level', 'Response', 'Final Resolution']
+    defect_headers = ['Defect ID', 'Severity', 'Priority', 'Root Cause', 'Status', 'Retest', 'Closure']
+    result = classify_document(' '.join([*issue_headers, *defect_headers]), 'Beta/01_IRP_dummy_data.xlsx', catalogue, {
+        'is_spreadsheet': True, 'populated_rows': 20,
+        'header_rows': [
+            {'sheet': 'Issue log', 'row_index': 0, 'values': issue_headers},
+            {'sheet': 'Defect log', 'row_index': 0, 'values': defect_headers},
+        ],
+    })
+    assert result['detected_type'] == 'Incident Log – 2 Months'
+    assert result['practice_areas'] == ['IRP']
+
+
+def test_cam_filename_with_generic_capacity_fields_requires_a_cam_identifier_anchor():
+    catalogue = [{
+        'document_type': 'CAM Sheet', 'practice_areas': ['SDM'],
+        'keywords': ['Corrective Action', 'Action Owner', 'Due Date', 'Root Cause', 'Preventive Action', 'Status', 'Closure'],
+        'aliases': ['CAM Sheet'], 'include_in_afr': True,
+    }]
+    headers = ['Capacity', 'Root Causal analysis', 'Corrective Action/ Preventive Action', 'Status']
+    result = classify_document(' '.join(headers), 'Beta/11_CAM_SHEET.xls', catalogue, {
+        'is_spreadsheet': True, 'populated_rows': 7,
+        'header_rows': [{'sheet': 'Capacity plan', 'row_index': 3, 'values': headers}],
+    })
+    assert result['detected_type'] == 'Unknown / Review Required'
+    assert result['reason_codes'] == ['MISSING_REQUIRED_SCHEMA_ANCHOR']
+
+
+def test_tabular_context_excludes_sparse_section_rows_but_keeps_substantive_missing_id_rows(tmp_path):
+    from openpyxl import Workbook
+
+    path = tmp_path / 'defects.xlsx'
+    workbook = Workbook(); sheet = workbook.active
+    sheet.append(['Defect ID', 'Phase', 'Defect Description'])
+    sheet.append([None, 'Pre-Release Check', None])
+    sheet.append(['DEF-1', 'System Test', 'A real defect'])
+    sheet.append([None, 'System Test', 'A real record missing its ID'])
+    workbook.save(path)
+    context = build_tabular_context(str(path), {
+        'required_keywords': ['Defect ID', 'Phase', 'Defect Description'],
+    })
+    assert context['row_count'] == 2
+    assert context['rows'] == [
+        ['DEF-1', 'System Test', 'A real defect'],
+        [None, 'System Test', 'A real record missing its ID'],
+    ]
+
+
+def test_tabular_context_never_selects_a_data_row_with_side_summary_labels_as_headers(tmp_path):
+    from datetime import datetime
+    from openpyxl import Workbook
+
+    path = tmp_path / 'issue-log.xlsx'
+    workbook = Workbook(); sheet = workbook.active
+    sheet.append(['Issue ID', 'Issue Date', 'Issue Status', 'Issue Category', 'Impact', 'Priority Level'])
+    sheet.append([
+        'ISS-1', datetime(2026, 1, 1), 'Resolved', 'Operational', 'Moderate', 'High',
+        'Category', 'Impact', 'Issue Priority', 'Status',
+    ])
+    workbook.save(path)
+    context = build_tabular_context(str(path), {
+        'detected_type': 'Incident Log – 2 Months',
+        'required_keywords': ['Incident ID', 'Date', 'Priority', 'Impact', 'Category', 'Status'],
+    })
+    assert context['header_row_index'] == 0
+    assert context['headers'][:6] == [
+        'Issue ID', 'Issue Date', 'Issue Status', 'Issue Category', 'Impact', 'Priority Level',
+    ]
 
 
 def test_spreadsheet_schema_outranks_incidental_test_case_references():
@@ -523,6 +603,234 @@ def test_tabular_validation_treats_zero_as_a_populated_evidence_value():
     assert result['missing_evidence'] == []
 
 
+def test_effort_tracking_identifier_duplicate_is_a_confirmed_integrity_gap():
+    classification = {
+        'document_type_rule_id': 101, 'practice_areas': ['EST'],
+        'document_role': 'PROJECT_IMPLEMENTATION_EVIDENCE', 'confidence': 'High',
+        'detected_type': 'Tracking of actual efforts against planned',
+    }
+    rule = {
+        'rule_id': 'EFF-01', 'practice_area': 'EST', 'level': 'L3-Check', 'is_gate': False,
+        'document_type_rule_id': 101, 'detection': 'Planned hours/PD per task',
+        'audit_check': 'Planned effort per task/resource is recorded.', 'gap_text': 'Missing',
+    }
+    result = validate_evidence('', classification, [rule], {
+        'headers': ['Tracking ID', 'Planned Hours'],
+        'rows': [['ET-001', 16], ['ET-001', 24]],
+    })['results'][0]
+    assert result['status'] == 'MISSING'
+    assert 'Tracking ID: duplicate value(s) ET-001' in result['missing_evidence']
+    assert 'Tracking ID: 2 populated value(s)' in result['found_evidence']
+
+
+def test_sla_profiles_identify_invalid_measurements_and_duplicate_incident_rows():
+    classification = {
+        'document_type_rule_id': 101, 'practice_areas': ['SDM'],
+        'document_role': 'PROJECT_IMPLEMENTATION_EVIDENCE', 'confidence': 'High',
+        'detected_type': 'SLA Target vs Achievement Report',
+    }
+    response_rule = {
+        'rule_id': 'SLA-03', 'practice_area': 'SDM', 'level': 'L3-Check', 'is_gate': False,
+        'document_type_rule_id': 101, 'detection': 'Actual vs target timestamps',
+        'audit_check': 'Actual response times are measured per incident.', 'gap_text': 'Missing',
+    }
+    response_result = validate_evidence('', classification, [response_rule], {
+        'headers': ['Incident ID', 'Response Target (Minutes)', 'Actual Response (Minutes)'],
+        'rows': [['INC-204', 30, 25], ['INC-204', 0, '#####']],
+    })['results'][0]
+    assert response_result['status'] == 'MISSING'
+    assert 'Incident ID: duplicate value(s) INC-204' in response_result['missing_evidence']
+    assert any('Response Target' in item and 'invalid, zero, or unreadable' in item
+               for item in response_result['missing_evidence'])
+    assert any('Actual Response' in item and 'invalid, zero, or unreadable' in item
+               for item in response_result['missing_evidence'])
+
+    priority_rule = {**response_rule, 'rule_id': 'SLA-01',
+                     'detection': 'Target table by priority',
+                     'audit_check': 'Response time SLA targets are defined per priority.'}
+    priority_result = validate_evidence('', classification, [priority_rule], {
+        'headers': ['Priority', 'Response Target (Minutes)'],
+        'rows': [['P1', 30], ['#####', 60]],
+    })['results'][0]
+    assert priority_result['status'] == 'MISSING'
+    assert 'Priority: invalid or unreadable governed value(s)' in priority_result['missing_evidence']
+
+
+def test_estimation_presence_control_uses_classified_artifact_not_a_fictitious_header():
+    classification = {
+        'original_file_name': 'project-sizing.xlsx', 'document_type_rule_id': 101,
+        'practice_areas': ['EST'], 'document_role': 'PROJECT_IMPLEMENTATION_EVIDENCE',
+        'confidence': 'Medium', 'detected_type': 'Estimation sheet',
+    }
+    rule = {
+        'rule_id': 'EST-01', 'practice_area': 'EST', 'level': 'L3-Check', 'is_gate': False,
+        'document_type_rule_id': 101, 'detection': 'File/record found matching the CR/FSD reference',
+        'audit_check': 'The Estimation Sheet exists and is available for audit', 'gap_text': 'Missing',
+    }
+    result = validate_evidence('', classification, [rule], {
+        'headers': ['Category', 'Estimated Effort (Hours)'], 'rows': [['Installation', 8]],
+    })['results'][0]
+    assert result['status'] == 'FOUND'
+    assert result['found_evidence'] == ['Matched Estimation sheet file: project-sizing.xlsx']
+
+
+def test_rca_approval_and_closure_headers_are_shown_without_claiming_review_date_evidence():
+    classification = {
+        'document_type_rule_id': 101, 'practice_areas': ['CAR'],
+        'document_role': 'PROJECT_IMPLEMENTATION_EVIDENCE', 'confidence': 'Medium',
+        'detected_type': 'RCA for P1/P2',
+    }
+    rule = {
+        'rule_id': 'RCA-15', 'practice_area': 'CAR', 'level': 'L3-Check', 'is_gate': False,
+        'document_type_rule_id': 101, 'detection': 'Reviewer + approval date',
+        'audit_check': 'RCA is reviewed, approved and formally closed with date', 'gap_text': 'Missing',
+    }
+    result = validate_evidence('', classification, [rule], {
+        'headers': ['RCA Approval', 'Closure Status'], 'rows': [['Approved', 'Closed']],
+    })['results'][0]
+    assert result['status'] == 'PARTIAL'
+    assert result['found_evidence'] == [
+        'RCA Approval: 1 populated value(s)', 'Closure Status: 1 populated value(s)',
+    ]
+    assert any('Reviewer' in item for item in result['missing_evidence'])
+    assert any('Approval date' in item for item in result['missing_evidence'])
+
+
+def test_field_control_checks_every_relevant_sheet_in_a_workbook_context():
+    classification = {
+        'document_type_rule_id': 101, 'practice_areas': ['PR'],
+        'document_role': 'PROJECT_IMPLEMENTATION_EVIDENCE', 'confidence': 'Medium',
+        'detected_type': 'Code Review Records & Defects',
+    }
+    register = {
+        'sheet_name': 'Review Register', 'headers': ['Review ID', 'Findings'],
+        'rows': [['REV-1', 0]], 'row_count': 1,
+    }
+    approvals = {
+        'sheet_name': 'Approval Evidence', 'headers': ['Review ID', 'Review Date'],
+        'rows': [['REV-1', '2026-09-23']], 'row_count': 1,
+    }
+    context = {**register, 'all_table_contexts': [register, approvals]}
+    rule = {
+        'rule_id': 'CRV-05', 'practice_area': 'PR', 'level': 'L3-Check', 'is_gate': False,
+        'document_type_rule_id': 101, 'detection': 'Review date',
+        'audit_check': 'Review date is recorded.', 'gap_text': 'Missing',
+    }
+    result = validate_evidence('', classification, [rule], context)['results'][0]
+    assert result['status'] == 'FOUND'
+    assert result['found_evidence'] == ['Review Date: 1 populated value(s)']
+
+
+def test_conditional_control_ignores_supporting_sheet_without_the_condition_column():
+    classification = {
+        'document_type_rule_id': 101, 'practice_areas': ['VV'],
+        'document_role': 'PROJECT_IMPLEMENTATION_EVIDENCE', 'confidence': 'Medium',
+        'detected_type': 'Unit Test Cases & Results',
+    }
+    test_register = {
+        'sheet_name': 'Unit Tests', 'headers': ['Test ID', 'Status', 'Defect ID'],
+        'rows': [['UT-1', 'Pass', '']], 'row_count': 1,
+    }
+    supporting_log = {
+        'sheet_name': 'Defect Notes', 'headers': ['Defect ID', 'Comment'],
+        'rows': [['', 'No defects were raised']], 'row_count': 1,
+    }
+    rule = {
+        'rule_id': 'UT-10', 'practice_area': 'VV', 'level': 'L3-Check', 'is_gate': False,
+        'document_type_rule_id': 101, 'condition': 'When test fails',
+        'detection': 'Defect ID reference',
+        'audit_check': 'Failed test cases have a linked defect ID.', 'gap_text': 'Missing',
+    }
+    result = validate_evidence('', classification, [rule], {
+        **test_register, 'all_table_contexts': [test_register, supporting_log],
+    })['results'][0]
+    assert result['status'] == 'NOT_APPLICABLE'
+    assert result['not_applicable_reason'] == 'condition_not_met'
+
+
+def test_unmapped_master_field_is_confirmed_missing_but_narrative_control_stays_review_required():
+    classification = {
+        'document_type_rule_id': 101, 'practice_areas': ['RDM'],
+        'document_role': 'PROJECT_IMPLEMENTATION_EVIDENCE', 'confidence': 'Medium',
+        'detected_type': 'Change Log / FSD',
+    }
+    context = {'headers': ['Change ID', 'Approval Decision'], 'rows': [['CR-1', 'Approved']]}
+    field_rule = {
+        'rule_id': 'CR-17', 'practice_area': 'RDM', 'level': 'L3-Check', 'is_gate': False,
+        'document_type_rule_id': 101, 'detection': 'Decision + date',
+        'audit_check': 'Approval date and decision are recorded.', 'gap_text': 'Missing',
+    }
+    field_result = validate_evidence('', classification, [field_rule], context)['results'][0]
+    assert field_result['status'] == 'PARTIAL'
+    assert field_result['found_evidence'] == ['Approval Decision: 1 populated value(s)']
+    assert field_result['missing_evidence'] == ['No reliable column mapping for: date.']
+
+    narrative_rule = {
+        'rule_id': 'CR-04', 'practice_area': 'RDM', 'level': 'L3-Check', 'is_gate': False,
+        'document_type_rule_id': 101, 'detection': 'Business need and rationale text',
+        'audit_check': 'Business justification is documented.', 'gap_text': 'Missing',
+    }
+    narrative_result = validate_evidence('', classification, [narrative_rule], context)['results'][0]
+    assert narrative_result['status'] == 'REVIEW_REQUIRED'
+
+
+def test_alternative_governed_reference_fields_do_not_create_a_false_gap():
+    classification = {
+        'document_type_rule_id': 101, 'practice_areas': ['VV'],
+        'document_role': 'PROJECT_IMPLEMENTATION_EVIDENCE', 'confidence': 'High',
+        'detected_type': 'Unit Test Cases & Results',
+    }
+    rule = {
+        'rule_id': 'UT-01', 'practice_area': 'VV', 'level': 'L3-Check', 'is_gate': False,
+        'document_type_rule_id': 101, 'detection': 'Requirement/FSD/TSD/CR reference',
+        'audit_check': 'Each test case links to its requirement, FSD, TSD, or change request.',
+        'gap_text': 'Reference missing.',
+    }
+    result = validate_evidence('', classification, [rule], {
+        'headers': ['Test ID', 'Change ID'], 'rows': [['UT-1', 'CR-44']],
+    })['results'][0]
+    assert result['status'] == 'FOUND'
+    assert result['found_evidence'] == ['Change ID: 1 populated value(s)']
+
+
+def test_custom_development_control_is_not_applicable_without_a_custom_trigger():
+    classification = {
+        'document_type_rule_id': 101, 'practice_areas': ['EST'],
+        'document_role': 'PROJECT_IMPLEMENTATION_EVIDENCE', 'confidence': 'High',
+        'detected_type': 'Estimation sheet',
+    }
+    rule = {
+        'rule_id': 'EST-04', 'practice_area': 'EST', 'level': 'L3-Check', 'is_gate': False,
+        'document_type_rule_id': 101, 'condition': 'When custom development applies',
+        'detection': 'Complexity rating', 'audit_check': 'Complexity is recorded for custom development.',
+        'gap_text': 'Complexity missing.',
+    }
+    result = validate_evidence('Standard configuration estimate', classification, [rule], {
+        'headers': ['Activity', 'Estimated Hours'], 'rows': [['Configuration', 8]],
+    })['results'][0]
+    assert result['status'] == 'NOT_APPLICABLE'
+    assert result['not_applicable_reason'] == 'condition_not_met'
+
+
+def test_governance_condition_with_missing_evidence_stays_a_review_not_a_confirmed_gap():
+    classification = {
+        'document_type_rule_id': 101, 'practice_areas': ['EST'],
+        'document_role': 'PROJECT_IMPLEMENTATION_EVIDENCE', 'confidence': 'High',
+        'detected_type': 'Estimation sheet',
+    }
+    rule = {
+        'rule_id': 'EST-17', 'practice_area': 'EST', 'level': 'L3-Check', 'is_gate': False,
+        'document_type_rule_id': 101, 'condition': 'Where required by project governance',
+        'detection': 'Approval date', 'audit_check': 'Approval date is recorded.',
+        'gap_text': 'Approval missing.',
+    }
+    result = validate_evidence('', classification, [rule], {
+        'headers': ['Activity', 'Estimated Hours'], 'rows': [['Build', 8]],
+    })['results'][0]
+    assert result['status'] == 'REVIEW_REQUIRED'
+    assert result['missing_evidence'][0].startswith('Applicability requires auditor confirmation:')
+
+
 def test_detection_specific_matching_rejects_a_related_but_wrong_header():
     classification = {
         'document_type_rule_id': 101, 'practice_areas': ['EST'],
@@ -591,6 +899,12 @@ def test_semantic_header_profiles_match_equivalent_alpha_fsd_estimation_sla_and_
             ['Planned Effort (Person-Days)'], [[2]],
         ),
         (
+            {'rule_id': 'EST-04', 'practice_area': 'EST', 'level': 'L3-Check', 'is_gate': False,
+             'document_type_rule_id': 101, 'detection': 'Complexity rating field (H/M/L) per object',
+             'audit_check': 'Complexity is assigned to each object', 'gap_text': 'Missing'},
+            ['Complexity'], [['Medium']],
+        ),
+        (
             {'rule_id': 'SLA-01', 'practice_area': 'SDM', 'level': 'L3-Check', 'is_gate': False,
              'document_type_rule_id': 101, 'detection': 'Target table by priority',
              'audit_check': 'Response time SLA targets are defined per priority', 'gap_text': 'Missing'},
@@ -638,6 +952,72 @@ def test_semantic_header_profiles_match_equivalent_alpha_fsd_estimation_sla_and_
              'audit_check': 'Root cause analysis method used is stated', 'gap_text': 'Missing'},
             ['5 Why Completed'], [['Yes']],
         ),
+        (
+            {'rule_id': 'FSD-05', 'practice_area': 'RDM', 'level': 'L3-Check', 'is_gate': False,
+             'document_type_rule_id': 101, 'detection': 'Numbered FR statements',
+             'audit_check': 'Functional requirements are individually numbered/traceable', 'gap_text': 'Missing'},
+            ['Requirement ID', 'Functional Requirement', 'Traceability'], [['REQ-001', 'The system shall...', 'Yes']],
+        ),
+        (
+            {'rule_id': 'UT-06', 'practice_area': 'VV', 'level': 'L3-Check', 'is_gate': False,
+             'document_type_rule_id': 101, 'detection': 'Expected outcome statement',
+             'audit_check': 'Expected result is defined', 'gap_text': 'Missing'},
+            ['Expected Result'], [['As specified in FSD']],
+        ),
+        (
+            {'rule_id': 'UT-07', 'practice_area': 'VV', 'level': 'L3-Check', 'is_gate': False,
+             'document_type_rule_id': 101, 'detection': 'Actual outcome statement',
+             'audit_check': 'Actual result is recorded', 'gap_text': 'Missing'},
+            ['Actual Result'], [['As expected']],
+        ),
+        (
+            {'rule_id': 'DEF-02', 'practice_area': 'VV', 'level': 'L3-Check', 'is_gate': False,
+             'document_type_rule_id': 101, 'detection': 'Descriptive text',
+             'audit_check': 'Defect description clearly explains the issue', 'gap_text': 'Missing'},
+            ['Defect Description'], [['Validation issue in a module']],
+        ),
+        (
+            {'rule_id': 'CRV-08', 'practice_area': 'PR', 'level': 'L3-Check', 'is_gate': False,
+             'document_type_rule_id': 101, 'detection': 'Defect count',
+             'audit_check': 'Total review findings are stated', 'gap_text': 'Missing'},
+            ['Findings', 'Finding IDs'], [[1, None]],
+        ),
+        (
+            {'rule_id': 'SIT-06', 'practice_area': 'VV', 'level': 'L3-Check', 'is_gate': False,
+             'document_type_rule_id': 101, 'detection': 'Expected outcome',
+             'audit_check': 'Expected result is defined', 'gap_text': 'Missing'},
+            ['Expected Result'], [['Expected behaviour']],
+        ),
+        (
+            {'rule_id': 'DEF-03', 'practice_area': 'VV', 'level': 'L3-Check', 'is_gate': False,
+             'document_type_rule_id': 101, 'detection': 'Test case ID reference',
+             'audit_check': 'Source test case is recorded', 'gap_text': 'Missing'},
+            ['Test ID'], [['TC-001']],
+        ),
+        (
+            {'rule_id': 'TR-01', 'practice_area': 'TS', 'level': 'L3-Check', 'is_gate': False,
+             'document_type_rule_id': 101, 'detection': 'TR number',
+             'audit_check': 'Unique transport request number is recorded', 'gap_text': 'Missing'},
+            ['Transport ID'], [['TR-001']],
+        ),
+        (
+            {'rule_id': 'TR-02', 'practice_area': 'TS', 'level': 'L3-Check', 'is_gate': False,
+             'document_type_rule_id': 101, 'detection': 'CR/FSD reference',
+             'audit_check': 'Transport is linked to an approved change', 'gap_text': 'Missing'},
+            ['Change ID'], [['CR-001']],
+        ),
+        (
+            {'rule_id': 'CAM-02', 'practice_area': 'CAR', 'level': 'L3-Check', 'is_gate': False,
+             'document_type_rule_id': 101, 'detection': 'Source record ID',
+             'audit_check': 'Source reference is identified', 'gap_text': 'Missing'},
+            ['Incident ID'], [['INC-001']],
+        ),
+        (
+            {'rule_id': 'CAM-06', 'practice_area': 'CAR', 'level': 'L3-Check', 'is_gate': False,
+             'document_type_rule_id': 101, 'detection': 'Preventive action text',
+             'audit_check': 'Preventive action is defined', 'gap_text': 'Missing'},
+            ['Preventive Action'], [['Update monitoring process']],
+        ),
     ]
     for rule, headers, rows in scenarios:
         result = validate_evidence('', {**classification, 'practice_areas': [rule['practice_area']]}, [rule], {
@@ -682,6 +1062,69 @@ def test_rca_five_why_requires_an_affirmative_completion_value():
     assert result['status'] == 'MISSING'
     assert result['found_evidence'] == []
     assert result['missing_evidence'] == ['5 Why Completed: no affirmative value(s)']
+
+
+def test_complexity_and_review_count_profiles_reject_invalid_values_and_lookalike_headers():
+    classification = {
+        'document_type_rule_id': 101, 'practice_areas': ['EST'],
+        'document_role': 'PROJECT_IMPLEMENTATION_EVIDENCE', 'confidence': 'High',
+    }
+    complexity = {
+        'rule_id': 'EST-04', 'practice_area': 'EST', 'level': 'L3-Check', 'is_gate': False,
+        'document_type_rule_id': 101, 'detection': 'Complexity rating field (H/M/L) per object',
+        'audit_check': 'Complexity is assigned', 'gap_text': 'Missing',
+    }
+    result = validate_evidence('', classification, [complexity], {
+        'headers': ['Complexity'], 'rows': [['TBD']],
+    })['results'][0]
+    assert result['status'] == 'MISSING'
+    assert result['missing_evidence'] == ['Complexity: invalid value(s) outside allowed values']
+
+    review_count = {
+        'rule_id': 'CRV-08', 'practice_area': 'PR', 'level': 'L3-Check', 'is_gate': False,
+        'document_type_rule_id': 101, 'detection': 'Defect count',
+        'audit_check': 'Total review findings are stated', 'gap_text': 'Missing',
+    }
+    result = validate_evidence('', {**classification, 'practice_areas': ['PR']}, [review_count], {
+        'headers': ['Finding Description'], 'rows': [['Formatting issue']],
+    })['results'][0]
+    assert result['status'] == 'MISSING'
+
+    result = validate_evidence('', {**classification, 'practice_areas': ['PR']}, [review_count], {
+        'headers': ['Findings'], 'rows': [['one']],
+    })['results'][0]
+    assert result['status'] == 'MISSING'
+    assert result['missing_evidence'] == ['Findings: non-numeric value(s)']
+
+
+def test_irp_profiles_use_issue_register_fields_and_enforce_unique_issue_ids():
+    classification = {
+        'document_type_rule_id': 101, 'practice_areas': ['IRP'],
+        'document_role': 'PROJECT_IMPLEMENTATION_EVIDENCE', 'confidence': 'High',
+        'detected_type': 'Incident Log – 2 Months',
+    }
+    resolution = {
+        'rule_id': 'INC-10', 'practice_area': 'IRP', 'level': 'L3-Check', 'is_gate': False,
+        'document_type_rule_id': 101, 'detection': 'Resolution narrative',
+        'audit_check': 'Resolution description is recorded', 'gap_text': 'Missing',
+    }
+    result = validate_evidence('', classification, [resolution], {
+        'headers': ['Final Resolution', 'Major Issue & Resolution Report Template link.'],
+        'rows': [['Resolved by restart', None]],
+    })['results'][0]
+    assert result['status'] == 'FOUND'
+    assert result['found_evidence'] == ['Final Resolution: 1 populated value(s)']
+
+    identifier = {
+        'rule_id': 'INC-02', 'practice_area': 'IRP', 'level': 'L3-Check', 'is_gate': False,
+        'document_type_rule_id': 101, 'detection': 'Incident ID',
+        'audit_check': 'Unique Incident ID is assigned', 'gap_text': 'Missing',
+    }
+    result = validate_evidence('', classification, [identifier], {
+        'headers': ['Issue ID'], 'rows': [['ISS-1'], ['ISS-1']],
+    })['results'][0]
+    assert result['status'] == 'MISSING'
+    assert 'duplicate value(s) ISS-1' in result['missing_evidence'][0]
 
 
 def test_unique_change_id_control_does_not_treat_repeated_requirement_ids_as_duplicate_changes():
@@ -779,4 +1222,4 @@ def test_change_date_cannot_be_reused_as_a_target_or_closure_date():
     result = validate_evidence('Status: Closed', classification, [rule], {
         'headers': ['Change ID', 'Change Date', 'Status'], 'rows': [['CR-1', '2026-09-01', 'Closed']],
     })['results'][0]
-    assert result['status'] == 'REVIEW_REQUIRED'
+    assert result['status'] == 'MISSING'

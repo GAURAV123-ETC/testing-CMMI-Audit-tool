@@ -21,6 +21,10 @@ CHANGE_LOG_FSD_NAME = 'Change Log / FSD'
 CHANGE_LOG_FSD_ALIASES = [
     CHANGE_LOG_FSD_NAME, 'change request log/FSD', 'change request log', 'Change Request', 'FSD',
 ]
+INCIDENT_LOG_TWO_MONTHS_NAME = 'Incident Log – 2 Months'
+INCIDENT_LOG_TWO_MONTHS_ALIASES = [
+    INCIDENT_LOG_TWO_MONTHS_NAME, 'Issue Log', 'Issue Register', 'IRP',
+]
 
 
 def _catalogue_key(value: object) -> str:
@@ -69,6 +73,62 @@ def _rename_change_log_fsd_catalogue(db) -> None:
         classification = evidence.classification_json or {}
         if _catalogue_key(classification.get('detected_type')) in legacy_keys:
             evidence.classification_json = {**classification, 'detected_type': CHANGE_LOG_FSD_NAME}
+
+
+def _canonicalize_incident_log_catalogue(db) -> None:
+    """Repair legacy replacement-character labels without changing catalogue IDs.
+
+    Early workbook imports could decode the en dash in ``Incident Log – 2
+    Months`` as the Unicode replacement character.  The ID must remain stable
+    because rules, evidence classifications, and historical findings refer to
+    it; only the end-user text and aliases are normalized.
+    """
+    canonical_key = _catalogue_key(INCIDENT_LOG_TWO_MONTHS_NAME)
+    by_version: dict[int, list[DocumentTypeRule]] = {}
+    for document in db.scalars(select(DocumentTypeRule)).all():
+        if _catalogue_key(document.document_type) == canonical_key:
+            by_version.setdefault(document.checklist_version_id, []).append(document)
+
+    replaced_document_ids: dict[int, int] = {}
+    for version_documents in by_version.values():
+        # Merge a malformed legacy row with an already-correct one before
+        # assigning the canonical name, avoiding a unique-constraint failure
+        # on (checklist_version_id, document_type).
+        canonical = next(
+            (document for document in version_documents
+             if document.document_type == INCIDENT_LOG_TWO_MONTHS_NAME),
+            version_documents[0],
+        )
+        aliases, seen = [], set()
+        for document in version_documents:
+            for candidate in [*INCIDENT_LOG_TWO_MONTHS_ALIASES, *(document.aliases or [])]:
+                normalized = _catalogue_key(candidate)
+                if candidate and normalized not in seen:
+                    aliases.append(INCIDENT_LOG_TWO_MONTHS_NAME if normalized == canonical_key else candidate)
+                    seen.add(normalized)
+        canonical.document_type = INCIDENT_LOG_TWO_MONTHS_NAME
+        canonical.aliases = aliases
+        for legacy in version_documents:
+            if legacy.id == canonical.id:
+                continue
+            db.query(CmmiRule).filter(CmmiRule.document_type_rule_id == legacy.id).update(
+                {CmmiRule.document_type_rule_id: canonical.id}, synchronize_session='fetch'
+            )
+            db.query(Finding).filter(Finding.document_type_rule_id == legacy.id).update(
+                {Finding.document_type_rule_id: canonical.id}, synchronize_session='fetch'
+            )
+            replaced_document_ids[legacy.id] = canonical.id
+            db.delete(legacy)
+    for evidence in db.scalars(select(EvidenceFile)).all():
+        classification = evidence.classification_json or {}
+        detected_type_is_legacy = _catalogue_key(classification.get('detected_type')) == canonical_key
+        replacement_id = replaced_document_ids.get(classification.get('document_type_rule_id'))
+        if detected_type_is_legacy or replacement_id is not None:
+            evidence.classification_json = {
+                **classification,
+                **({'detected_type': INCIDENT_LOG_TWO_MONTHS_NAME} if detected_type_is_legacy else {}),
+                **({'document_type_rule_id': replacement_id} if replacement_id is not None else {}),
+            }
 
 
 def _add_missing_columns(table: str, definitions: dict[str, str]) -> None:
@@ -360,6 +420,7 @@ def initialise_database():
                                          primary_purpose=item.get('primary_purpose'),
                                          include_in_afr=bool(item.get('include_in_afr', False))) for item in documents])
         _rename_change_log_fsd_catalogue(db)
+        _canonicalize_incident_log_catalogue(db)
         sync_screen_registry(db)
         # Screen-registry mappings are needed by the one-time access
         # migrations below. Flush first so their existence checks cannot add

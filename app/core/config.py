@@ -40,11 +40,11 @@ class Settings(BaseSettings):
     smtp_username: str = ''
     smtp_password: str = ''
     smtp_from_email: str = ''
-    # Local development runs on 8010; Docker overrides this to its published
+    # Local development runs on 8090; Docker overrides this to its published
     # port in docker-compose so externally generated links remain correct.
-    public_base_url: str = 'http://localhost:8010'
+    public_base_url: str = 'http://localhost:8090'
     app_host: str = '127.0.0.1'
-    app_port: int = 8010
+    app_port: int = 8090
     app_reload: bool = False
     cors_origins: str = ''
 

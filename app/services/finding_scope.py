@@ -61,6 +61,10 @@ def afr_findings_query(audit_session_id: int, *, open_only: bool = True):
         or_(
             and_(
                 Finding.finding_kind.in_(('document_catalogue', 'rule_assessment')),
+                # Existing scans used this title marker before
+                # ``review_required`` became an explicit finding kind. Keep
+                # it for historic rows, while all newly scanned reviews are
+                # excluded by kind rather than wording.
                 Finding.title.notlike('Review_Required evidence for %'),
                 has_afr_eligible_evidence(),
             ),

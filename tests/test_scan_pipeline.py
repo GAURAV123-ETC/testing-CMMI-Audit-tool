@@ -39,6 +39,42 @@ def test_key_normalization_keeps_scalar_values_intact_and_removes_blank_duplicat
     assert evidence_scan._unique_nonblank_keys([' Closure date ', 'closure date', None, '']) == ['Closure date']
 
 
+def test_combined_change_log_fsd_scope_does_not_seed_other_subtype_controls_as_gaps():
+    classifications = [{
+        'document_type_rule_id': 101,
+        'detected_type': 'Change Log / FSD',
+        'artifact_scope': 'FSD',
+    }]
+    fsd_rule = {'rule_id': 'FSD-01', 'document_type_rule_id': 101}
+    change_log_rule = {'rule_id': 'CR-01', 'document_type_rule_id': 101}
+
+    assert evidence_scan._rule_has_assessable_uploaded_scope(fsd_rule, classifications)
+    assert not evidence_scan._rule_has_assessable_uploaded_scope(change_log_rule, classifications)
+
+
+def test_unknown_combined_subtype_keeps_all_controls_assessable():
+    classifications = [{
+        'document_type_rule_id': 101,
+        'detected_type': 'Change Log / FSD',
+        'artifact_scope': None,
+    }]
+
+    assert evidence_scan._rule_has_assessable_uploaded_scope(
+        {'rule_id': 'CR-01', 'document_type_rule_id': 101}, classifications
+    )
+
+
+def test_mixed_known_and_unknown_combined_subtypes_keep_all_controls_assessable():
+    classifications = [
+        {'document_type_rule_id': 101, 'detected_type': 'Change Log / FSD', 'artifact_scope': 'FSD'},
+        {'document_type_rule_id': 101, 'detected_type': 'Change Log / FSD', 'artifact_scope': None},
+    ]
+
+    assert evidence_scan._rule_has_assessable_uploaded_scope(
+        {'rule_id': 'CR-01', 'document_type_rule_id': 101}, classifications
+    )
+
+
 def add_test_catalog(db, version_id=1):
     db.add(ChecklistVersion(id=version_id, version=f'test-{version_id}', source='test', checksum=str(version_id) * 64,
                             framework='CMMI v3.0', status='ACTIVE', is_active=True))
@@ -94,6 +130,15 @@ def test_persisted_evidence_scan_creates_findings_and_updates_practice_area_stat
     assert outcome['duplicate_files_skipped'] == 1
     assert outcome['findings_created'] == len(findings)
     assert outcome['findings_created'] == outcome['evidence_findings_created'] + outcome['coverage_gaps_created']
+    assert outcome['assessment_coverage'] == {
+        'master_controls_total': 3,
+        'controls_in_uploaded_document_scope': 2,
+        'controls_assessed': 2,
+        'controls_not_in_file_scope': 1,
+        'governed_document_types_total': 2,
+        'matched_document_types': 1,
+        'unmatched_document_types': ['Issue Log'],
+    }
     assert all(isinstance(finding.required_keys, list) for finding in findings)
     assert all(isinstance(finding.available_keys, list) for finding in findings)
     assert all(isinstance(finding.missing_required_keys, list) for finding in findings)
@@ -215,7 +260,7 @@ def test_document_keys_flow_unchanged_from_spreadsheet_to_persisted_finding_and_
     assert values['Required Keys'] == 'Closure date'
     assert values['Available Keys'] == 'Closure Date: 1 populated value(s)'
     assert values['Missing Required Keys'] == 'Closure Date: 1 blank value(s)'
-    assert values['Finding'] == 'Partial evidence for CR-19'
+    assert values['Finding'] == 'Data integrity issue for CR-19'
     export_workbook = load_workbook(evidence_scan_export_path, read_only=True)
     export_headers = next(export_workbook['Detailed Control Findings'].iter_rows(values_only=True))
     export_values = dict(zip(

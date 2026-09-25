@@ -3,8 +3,8 @@ from pathlib import Path
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 from app.db.database import Base
-from app.db.init_db import _rename_change_log_fsd_catalogue
-from app.db.models import ChecklistVersion, CmmiRule, DocumentTypeRule, Finding
+from app.db.init_db import _canonicalize_incident_log_catalogue, _rename_change_log_fsd_catalogue
+from app.db.models import ChecklistVersion, CmmiRule, DocumentTypeRule, EvidenceFile, Finding
 from app.services.audit_engine.irp_validation import ISSUE_LOG_FIELDS
 def test_rule_seed_has_all_master_rules():
     rules=json.loads((Path('app/db/seed_data/cmmi_rules.json')).read_text())
@@ -77,3 +77,53 @@ def test_change_log_fsd_rename_merges_legacy_duplicate_and_preserves_references(
         assert {'Change Log / FSD', 'change request log/FSD', 'FSD'} <= set(documents[0].aliases)
         assert db.get(CmmiRule, rule.id).document_type_rule_id == documents[0].id
         assert db.get(Finding, finding.id).document_type_rule_id == documents[0].id
+
+
+def test_incident_log_catalogue_normalizes_legacy_replacement_character_label():
+    engine = create_engine('sqlite://')
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine)
+    with factory() as db:
+        version = ChecklistVersion(version='test', source='test', checksum='x')
+        db.add(version); db.flush()
+        legacy = DocumentTypeRule(
+            checklist_version_id=version.id, document_type='Incident Log � 2 Months',
+            practice_areas=['IRP'], keywords=['Incident ID'],
+            aliases=['Incident Log � 2 Months'], include_in_afr=True,
+        )
+        canonical = DocumentTypeRule(
+            checklist_version_id=version.id, document_type='Incident Log – 2 Months',
+            practice_areas=['IRP'], keywords=['Incident ID'],
+            aliases=['Incident Log – 2 Months'], include_in_afr=True,
+        )
+        db.add_all([legacy, canonical]); db.flush()
+        rule = CmmiRule(
+            checklist_version_id=version.id, rule_id='IRP-01', practice_area_code='IRP',
+            level='L3-Check', audit_check='Incident exists.', gap_text='Missing.',
+            document_type_rule_id=legacy.id,
+        )
+        db.add(rule); db.flush()
+        evidence = EvidenceFile(
+            source_id=1, relative_path='incident.xlsx', storage_path='uploads/1/incident.xlsx',
+            sha256='a' * 64, size_bytes=1,
+            classification_json={
+                'detected_type': 'Incident Log � 2 Months',
+                'document_type_rule_id': legacy.id,
+            },
+        )
+        # The label migration does not require a source row because it only
+        # rewrites JSON already stored on the evidence record.
+        db.add(evidence); db.flush()
+
+        _canonicalize_incident_log_catalogue(db)
+        db.flush()
+
+        documents = db.scalars(select(DocumentTypeRule)).all()
+        assert len(documents) == 1
+        assert documents[0].document_type == 'Incident Log – 2 Months'
+        assert documents[0].aliases == [
+            'Incident Log – 2 Months', 'Issue Log', 'Issue Register', 'IRP',
+        ]
+        assert db.get(CmmiRule, rule.id).document_type_rule_id == documents[0].id
+        assert evidence.classification_json['detected_type'] == 'Incident Log – 2 Months'
+        assert evidence.classification_json['document_type_rule_id'] == documents[0].id

@@ -10,13 +10,14 @@ services:
       DB_NAME: ${DB_NAME:-cmmi_audit}
       DB_USER: cmmi
       DB_PASSWORD: ${DB_PASSWORD:-change-me}
-      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
-    ports: ["8080:8080"]
+      APP_PORT: 8090
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8090}
+    ports: ["8090:8090"]
     depends_on: { mysql: { condition: service_healthy } }
     volumes: [uploads:/data/uploads, reports:/data/reports, templates:/data/templates]
     networks: [default, internal]
     restart: unless-stopped
-    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/api/docs')"], interval: 30s, timeout: 5s, retries: 5 }
+    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8090/api/docs')"], interval: 30s, timeout: 5s, retries: 5 }
   mysql:
     image: mysql:8.4
     environment:

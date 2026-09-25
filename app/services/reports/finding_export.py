@@ -73,6 +73,13 @@ def display_rule_id(rule_id: object) -> str:
     return DOCUMENT_COVERAGE_RULE_LABEL if value.startswith('DOC-COVERAGE-') else value
 
 
+def display_finding_status(finding: Finding) -> str:
+    """Keep an auditor-review row from being mistaken for an open gap."""
+    if finding.finding_kind == 'review_required':
+        return 'Auditor review required (not a confirmed gap)'
+    return finding.status
+
+
 def format_available_keys(values: object, *, has_linked_evidence: bool) -> str:
     """Render an explicit absence reason instead of an ambiguous blank cell."""
     rendered = format_key_values(values)
@@ -199,7 +206,7 @@ def _rows(db: Session, audit_session_id: int, findings: list[Finding] | None = N
     _, unreadable_paths = audit_scope_status(db, audit_session_id)
     return [[safe_export_value(value) for value in (
         finding.id, display_rule_id(finding.rule_id), finding.practice_area_code, finding.severity,
-        finding.status, finding.title, finding.description, finding.recommendation,
+        display_finding_status(finding), finding.title, finding.description, finding.recommendation,
         format_key_values(finding.required_keys), format_available_keys(
             finding.available_keys, has_linked_evidence=bool(evidence_by_finding[finding.id])
         ),

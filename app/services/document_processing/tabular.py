@@ -82,21 +82,51 @@ def read_tabular_rows(path: str) -> list[list]:
     return sheets[0][1] if sheets else []
 
 
-def select_tabular_table(path: str, fields: list[dict], required_fields: tuple[str, ...] = (),
-                         header_search_rows: int = 100, *, data_only: bool = True) -> TabularSelection:
-    """Select the worksheet and header row that best match a governed schema."""
-    best: TabularSelection | None = None
-    best_score = (-1, -1, -1)
+def select_tabular_tables(path: str, fields: list[dict], required_fields: tuple[str, ...] = (),
+                          header_search_rows: int = 100, *, data_only: bool = True) -> list[TabularSelection]:
+    """Return the best governed table from every relevant worksheet.
+
+    A single workbook can legitimately hold a record register, supporting
+    approval data, and a calculation table on separate sheets.  Callers that
+    validate every master control must examine each relevant table, not only
+    the workbook's globally best header match.
+    """
+    selected: list[tuple[tuple[int, int, int], TabularSelection]] = []
     for sheet_name, sheet_rows in read_tabular_sheets(path, data_only=data_only):
+        sheet_best: TabularSelection | None = None
+        sheet_best_score = (-1, -1, -1)
         for row_index, headers in enumerate(sheet_rows[:header_search_rows]):
+            # A record can contain free-text values that look like field names
+            # in an adjacent summary block. Dates and numeric cell values are
+            # a reliable indication that this is a data row, never the table
+            # header. Skipping it prevents the first incident/defect record
+            # from becoming the schema for an entire workbook.
+            if any(
+                value is not None and not isinstance(value, str)
+                for value in headers
+            ):
+                continue
             indices = match_fields_exclusive(headers, fields)
             required_matches = sum(indices.get(key) is not None for key in required_fields)
             matches = sum(index is not None for index in indices.values())
             populated = sum(bool(cell_text(value).strip()) for value in headers)
             score = (required_matches, matches, populated)
-            if score > best_score:
-                best_score = score
-                best = TabularSelection(sheet_name, row_index, sheet_rows[row_index:], indices)
-    if best is None:
+            if score > sheet_best_score:
+                sheet_best_score = score
+                sheet_best = TabularSelection(sheet_name, row_index, sheet_rows[row_index:], indices)
+        # A zero-match row is not a governed table for this document schema.
+        # Excluding it avoids treating a revision-history sheet as evidence.
+        if sheet_best is not None and sheet_best_score[1] > 0:
+            selected.append((sheet_best_score, sheet_best))
+    return [selection for _, selection in sorted(selected, key=lambda item: item[0], reverse=True)]
+
+
+def select_tabular_table(path: str, fields: list[dict], required_fields: tuple[str, ...] = (),
+                         header_search_rows: int = 100, *, data_only: bool = True) -> TabularSelection:
+    """Select the strongest governed table for backwards-compatible callers."""
+    selections = select_tabular_tables(
+        path, fields, required_fields, header_search_rows, data_only=data_only
+    )
+    if not selections:
         return TabularSelection('', 0, [], {field['key']: None for field in fields})
-    return best
+    return selections[0]

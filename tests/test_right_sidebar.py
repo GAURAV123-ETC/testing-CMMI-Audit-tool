@@ -284,8 +284,8 @@ def test_evidence_scan_exposes_project_scoped_upload_and_persisted_results():
     assert 'Saved results' in source
     assert 'View saved results for selected session' not in source
     assert 'Evidence findings from uploaded files' in source
-    assert 'Checklist coverage gaps' in source
-    assert 'not included in AFR' in source
+    assert 'Document and checklist coverage' in source
+    assert 'included in the AFR Open Findings' in source
     assert 'Scan job ID' in source
     assert 'Workspace selection is locked until it finishes' in source
     assert 'running_scan_session_id' in source

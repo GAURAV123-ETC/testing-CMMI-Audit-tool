@@ -14,7 +14,7 @@ python main.py
 pytest -q
 ```
 
-On an empty database, open `http://127.0.0.1:8010/login` and create the one
+On an empty database, open `http://127.0.0.1:8090/login` and create the one
 initial administrator account. After that, public registration is disabled;
 administrators create all later accounts from Manage Users. On Windows,
 `run-local.cmd` activates the same entrypoint with development reload enabled.

@@ -9,7 +9,7 @@ from app.services.finding_scope import afr_findings_query, evidence_findings_que
 from app.services.reports.finding_export import (
     DETAILED_CONTROL_CONTEXT_HEADERS, add_empty_findings_message, audit_scope_status,
     classification_display_values, evidence_link_status, finding_evidence_paths,
-    display_rule_id, format_available_keys, format_key_values, safe_export_value, style_classification_sheet,
+    display_finding_status, display_rule_id, format_available_keys, format_key_values, safe_export_value, style_classification_sheet,
     CLASSIFICATION_HEADERS, _append_document_coverage_sheet,
 )
 
@@ -72,7 +72,7 @@ def create_afr(db: Session, audit_session_id: int, user_id: int, fmt: str,
                     f.available_keys, has_linked_evidence=bool(paths)
                 ), format_key_values(f.missing_required_keys),
                 evidence_link_status(paths, unreadable_paths), '\n'.join(paths), f.description, f.recommendation,
-                f.status, '\n'.join(comments[f.id]), '\n'.join(actions[f.id]),
+                display_finding_status(f), '\n'.join(comments[f.id]), '\n'.join(actions[f.id]),
             )])
         ws.freeze_panes = 'A2'
         header_fill = PatternFill('solid', fgColor='1F4E78')
@@ -136,7 +136,7 @@ def create_afr(db: Session, audit_session_id: int, user_id: int, fmt: str,
                     f.available_keys, has_linked_evidence=bool(paths)
                 ), format_key_values(f.missing_required_keys),
                 evidence_link_status(paths, unreadable_paths), '\n'.join(paths), f.description, f.recommendation,
-                f.status, '\n'.join(control_comments[f.id]), '\n'.join(control_actions[f.id]),
+                display_finding_status(f), '\n'.join(control_comments[f.id]), '\n'.join(control_actions[f.id]),
             )])
         detail.freeze_panes = 'A2'
         detail.auto_filter.ref = f'A1:{detail.cell(1, detail.max_column).column_letter}{max(1, detail.max_row)}'
