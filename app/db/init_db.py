@@ -1,6 +1,7 @@
-import hashlib, json
+import hashlib, json, logging
 from pathlib import Path
 from sqlalchemy import inspect, select, text
+from sqlalchemy.exc import IntegrityError
 from app.db.database import Base, engine, SessionLocal
 from app.db.models import (ChecklistVersion, CmmiDomain, CmmiDomainPracticeArea,
                            CmmiModelProfile, CmmiRule, DocumentTypeRule,
@@ -25,6 +26,11 @@ INCIDENT_LOG_TWO_MONTHS_NAME = 'Incident Log – 2 Months'
 INCIDENT_LOG_TWO_MONTHS_ALIASES = [
     INCIDENT_LOG_TWO_MONTHS_NAME, 'Issue Log', 'Issue Register', 'IRP',
 ]
+
+logger = logging.getLogger(__name__)
+
+DEFAULT_CHECKLIST_VERSION = 'CMMI-V3-2026.09.01'
+DEFAULT_CHECKLIST_SOURCE = 'CMMI_v3_Rule_Based_Audit_Checklist_v2.xlsx / MASTER'
 
 
 def _catalogue_key(value: object) -> str:
@@ -382,11 +388,100 @@ def _remove_retired_dashboard_reference_data(db) -> None:
         SystemConfiguration.key == 'cmmi_v3_structure_source_checksum'
     ).delete(synchronize_session=False)
 
+
+def _find_seed_checklist_version(db, checksum: str, *, lock: bool = False) -> ChecklistVersion | None:
+    """Return the built-in catalogue row without relying on a mutable checksum.
+
+    The version label is the database's unique business key.  A checksum is
+    still used to recognize an equivalent catalogue imported under another
+    label.  ``lock`` serializes repairs of a pre-existing, incomplete seed
+    catalogue when two application instances start at once.
+    """
+    def find(statement):
+        return db.scalar(statement.with_for_update() if lock else statement)
+
+    version = find(select(ChecklistVersion).where(
+        ChecklistVersion.version == DEFAULT_CHECKLIST_VERSION
+    ))
+    if version:
+        if version.checksum != checksum:
+            logger.warning(
+                'Using existing checklist version %s with legacy checksum %s; '
+                'the bundled seed checksum is %s.',
+                DEFAULT_CHECKLIST_VERSION, version.checksum, checksum,
+            )
+        return version
+    return find(select(ChecklistVersion).where(ChecklistVersion.checksum == checksum))
+
+
+def _seed_missing_catalogue_records(db, version: ChecklistVersion, rules: list[dict], documents: list[dict]) -> None:
+    """Repair an incomplete built-in seed without overwriting governed data."""
+    existing_rule_ids = set(db.scalars(select(CmmiRule.rule_id).where(
+        CmmiRule.checklist_version_id == version.id
+    )).all())
+    db.add_all([
+        CmmiRule(
+            checklist_version_id=version.id,
+            rule_id=rule['rule_id'],
+            practice_area_code=rule['practice_area'],
+            level=rule['level'],
+            audit_check=rule['audit_check'],
+            gap_text=rule['gap_text'],
+        )
+        for rule in rules if rule['rule_id'] not in existing_rule_ids
+    ])
+
+    existing_document_types = set(db.scalars(select(DocumentTypeRule.document_type).where(
+        DocumentTypeRule.checklist_version_id == version.id
+    )).all())
+    db.add_all([
+        DocumentTypeRule(
+            checklist_version_id=version.id,
+            document_type=item['document_type'],
+            practice_areas=item.get('practice_areas', []),
+            keywords=item.get('keywords', []),
+            aliases=item.get('aliases', []),
+            expected_evidence=item.get('expected_evidence'),
+            primary_purpose=item.get('primary_purpose'),
+            include_in_afr=bool(item.get('include_in_afr', False)),
+        )
+        for item in documents if item['document_type'] not in existing_document_types
+    ])
+
+
+def _get_or_create_seed_checklist_version(db, checksum: str) -> ChecklistVersion:
+    """Create the built-in catalogue once, including during concurrent startup."""
+    version = _find_seed_checklist_version(db, checksum, lock=True)
+    if version:
+        return version
+
+    # A savepoint keeps the surrounding startup transaction usable if another
+    # application instance wins the insert race on the unique version column.
+    try:
+        with db.begin_nested():
+            version = ChecklistVersion(
+                version=DEFAULT_CHECKLIST_VERSION,
+                source=DEFAULT_CHECKLIST_SOURCE,
+                checksum=checksum,
+                framework='CMMI v3.0',
+                status='ACTIVE',
+            )
+            db.add(version)
+            db.flush()
+    except IntegrityError:
+        # Do not hide an unrelated integrity error: only continue if the
+        # winning row is now present and can be locked for the repair work.
+        version = _find_seed_checklist_version(db, checksum, lock=True)
+        if not version:
+            raise
+    return version
+
 def initialise_database():
     Base.metadata.create_all(engine)
     _upgrade_schema()
     seed = Path(__file__).parent / 'seed_data' / 'cmmi_rules.json'
     raw = seed.read_bytes(); rules = json.loads(raw)
+    documents = json.loads((Path(__file__).parent / 'seed_data' / 'document_types.json').read_text(encoding='utf-8'))
     with SessionLocal() as db:
         _rename_reviewer_role(db)
         permissions = {code: Permission(code=code, description=code) for codes in ROLES.values() for code in codes}
@@ -406,19 +501,8 @@ def initialise_database():
             if not db.scalar(select(PracticeArea).where(PracticeArea.code == code)):
                 db.add(PracticeArea(code=code, name=name))
         checksum = hashlib.sha256(raw).hexdigest()
-        version = db.scalar(select(ChecklistVersion).where(ChecklistVersion.checksum == checksum))
-        if not version:
-            version = ChecklistVersion(version='CMMI-V3-2026.09.01', source='CMMI_v3_Rule_Based_Audit_Checklist_v2.xlsx / MASTER', checksum=checksum,
-                                       framework='CMMI v3.0', status='ACTIVE')
-            db.add(version); db.flush()
-            db.add_all([CmmiRule(checklist_version_id=version.id, rule_id=r['rule_id'], practice_area_code=r['practice_area'], level=r['level'], audit_check=r['audit_check'], gap_text=r['gap_text']) for r in rules])
-        if not db.scalar(select(DocumentTypeRule.id).where(DocumentTypeRule.checklist_version_id == version.id)):
-            documents = json.loads((Path(__file__).parent / 'seed_data' / 'document_types.json').read_text(encoding='utf-8'))
-            db.add_all([DocumentTypeRule(checklist_version_id=version.id, document_type=item['document_type'],
-                                         practice_areas=item.get('practice_areas', []), keywords=item.get('keywords', []),
-                                         aliases=item.get('aliases', []), expected_evidence=item.get('expected_evidence'),
-                                         primary_purpose=item.get('primary_purpose'),
-                                         include_in_afr=bool(item.get('include_in_afr', False))) for item in documents])
+        version = _get_or_create_seed_checklist_version(db, checksum)
+        _seed_missing_catalogue_records(db, version, rules, documents)
         _rename_change_log_fsd_catalogue(db)
         _canonicalize_incident_log_catalogue(db)
         sync_screen_registry(db)
