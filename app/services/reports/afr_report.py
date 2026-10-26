@@ -4,6 +4,7 @@ from uuid import uuid4
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from app.core.config import get_settings
+from app.core.audit_log import log_action
 from app.db.models import AuditProject, AuditSession, Comment, EvidenceFile, EvidenceSource, Finding, GeneratedReport, RemediationAction
 from app.services.finding_scope import afr_findings_query, evidence_findings_query
 from app.services.reports.finding_export import (
@@ -205,4 +206,4 @@ def create_afr(db: Session, audit_session_id: int, user_id: int, fmt: str,
                 if y<50: pdf.showPage(); y=800
                 pdf.drawString(48,y,segment); y-=12
         pdf.save()
-    report=GeneratedReport(audit_session_id=audit_session_id,report_type=f'afr_{fmt}',storage_path=str(output),created_by_id=user_id); db.add(report); db.commit(); db.refresh(report); return report
+    report=GeneratedReport(audit_session_id=audit_session_id,report_type=f'afr_{fmt}',storage_path=str(output),created_by_id=user_id); db.add(report); db.flush(); log_action(db, 'report_generated', user_id=user_id, entity_type='report', entity_id=str(report.id), detail=report.report_type); db.commit(); db.refresh(report); return report

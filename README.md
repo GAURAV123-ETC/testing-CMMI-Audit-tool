@@ -20,3 +20,15 @@ administrators create all later accounts from Manage Users. On Windows,
 `run-local.cmd` activates the same entrypoint with development reload enabled.
 
 For deployment, see `docs/deployment.md`.
+
+## Security operations
+
+Production requires a dedicated non-root runtime database account, a unique
+32-character-or-longer `SECRET_KEY`, HTTPS `PUBLIC_BASE_URL`, and
+`AUTO_MIGRATE_ON_STARTUP=false`. Apply the controlled bootstrap/migration step
+with `python -m app.db.migrate` using a separate DDL-capable account before
+starting the runtime container. The CI security workflow runs dependency,
+static-analysis, secret, SBOM, and container-image checks. A fully hash-pinned
+lockfile still requires generating and reviewing it against the Python 3.12
+production build environment before it can replace the current compatibility
+ranges in `requirements.txt`.

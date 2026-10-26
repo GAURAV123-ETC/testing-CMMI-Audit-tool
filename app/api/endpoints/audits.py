@@ -32,13 +32,13 @@ class RemediationUpdateIn(BaseModel): action: str | None = Field(default=None, m
 def customers(db: Session = Depends(get_db), user=Depends(current_user), screen_user=Depends(require_screen('add_project'))): return db.scalars(select(Customer).order_by(Customer.name)).all()
 @router.post('/customers')
 def add_customer(payload: CustomerIn, db: Session = Depends(get_db), user=Depends(current_user), screen_user=Depends(require_screen('add_project', 'write'))):
-    customer = Customer(**payload.model_dump(), created_by_id=user.id); db.add(customer); db.commit(); db.refresh(customer); return customer
+    customer = Customer(**payload.model_dump(), created_by_id=user.id); db.add(customer); db.flush(); log_action(db, 'customer_created', user_id=user.id, entity_type='customer', entity_id=str(customer.id)); db.commit(); db.refresh(customer); return customer
 @router.get('/projects')
 def projects(db: Session = Depends(get_db), user=Depends(current_user), screen_user=Depends(require_screen('add_project'))): return db.scalars(select(AuditProject).order_by(AuditProject.name)).all()
 @router.post('/projects')
 def add_project(payload: ProjectIn, db: Session = Depends(get_db), user=Depends(current_user), screen_user=Depends(require_screen('add_project', 'write'))):
     if not db.get(Customer, payload.customer_id): raise HTTPException(404, 'Customer not found')
-    project = AuditProject(**payload.model_dump(), owner_id=user.id); db.add(project); db.commit(); db.refresh(project); return project
+    project = AuditProject(**payload.model_dump(), owner_id=user.id); db.add(project); db.flush(); log_action(db, 'project_created', user_id=user.id, entity_type='project', entity_id=str(project.id)); db.commit(); db.refresh(project); return project
 @router.post('/audit-sessions')
 def add_session(payload: SessionIn, db: Session = Depends(get_db), user=Depends(current_user), screen_user=Depends(require_screen('add_project', 'write'))):
     if not db.get(AuditProject, payload.project_id):
@@ -47,7 +47,7 @@ def add_session(payload: SessionIn, db: Session = Depends(get_db), user=Depends(
     if not version: raise HTTPException(503, 'Checklist seed data is unavailable')
     values = payload.model_dump()
     session = AuditSession(**values, checklist_version_id=version.id, created_by_id=user.id); db.add(session); db.flush()
-    db.add_all([AuditSessionPracticeArea(audit_session_id=session.id, practice_area_id=pa.id) for pa in db.scalars(select(PracticeArea)).all()])
+    db.add_all([AuditSessionPracticeArea(audit_session_id=session.id, practice_area_id=pa.id) for pa in db.scalars(select(PracticeArea)).all()]); log_action(db, 'audit_session_created', user_id=user.id, entity_type='audit_session', entity_id=str(session.id))
     db.commit(); db.refresh(session); return session
 @router.get('/audit-sessions/{audit_session_id}/findings')
 def findings(audit_session_id: int, db: Session = Depends(get_db), user=Depends(current_user), screen_user=Depends(require_screen('evidence_scan'))): return db.scalars(evidence_findings_query(audit_session_id, open_only=False).order_by(Finding.created_at.desc())).all()
@@ -60,7 +60,7 @@ def finding_comments(finding_id: int, db: Session = Depends(get_db), user=Depend
 @router.post('/findings/{finding_id}/comments')
 def add_finding_comment(finding_id: int, payload: CommentIn, db: Session = Depends(get_db), user=Depends(current_user), screen_user=Depends(require_screen('evidence_scan', 'write'))):
     if not db.get(Finding, finding_id): raise HTTPException(404, 'Finding not found')
-    item = Comment(finding_id=finding_id, author_id=user.id, body=payload.body.strip()); db.add(item); db.commit(); db.refresh(item); return item
+    item = Comment(finding_id=finding_id, author_id=user.id, body=payload.body.strip()); db.add(item); db.flush(); log_action(db, 'finding_comment_created', user_id=user.id, entity_type='finding', entity_id=str(finding_id)); db.commit(); db.refresh(item); return item
 @router.get('/findings/{finding_id}/remediation-actions')
 def remediation_actions(finding_id: int, db: Session = Depends(get_db), user=Depends(current_user), screen_user=Depends(require_screen('evidence_scan'))):
     if not db.get(Finding, finding_id): raise HTTPException(404, 'Finding not found')
@@ -68,12 +68,14 @@ def remediation_actions(finding_id: int, db: Session = Depends(get_db), user=Dep
 @router.post('/findings/{finding_id}/remediation-actions')
 def add_remediation_action(finding_id: int, payload: RemediationIn, db: Session = Depends(get_db), user=Depends(current_user), screen_user=Depends(require_screen('evidence_scan', 'write'))):
     if not db.get(Finding, finding_id): raise HTTPException(404, 'Finding not found')
-    item = RemediationAction(finding_id=finding_id, action=payload.action.strip(), due_at=payload.due_at); db.add(item); db.commit(); db.refresh(item); return item
+    item = RemediationAction(finding_id=finding_id, action=payload.action.strip(), due_at=payload.due_at); db.add(item); db.flush(); log_action(db, 'remediation_created', user_id=user.id, entity_type='remediation_action', entity_id=str(item.id)); db.commit(); db.refresh(item); return item
 @router.patch('/remediation-actions/{action_id}')
 def update_remediation_action(action_id: int, payload: RemediationUpdateIn, db: Session = Depends(get_db), user=Depends(current_user), screen_user=Depends(require_screen('evidence_scan', 'write'))):
     item = db.get(RemediationAction, action_id)
     if not item: raise HTTPException(404, 'Remediation action not found')
-    for field, value in payload.model_dump(exclude_unset=True).items(): setattr(item, field, value.strip() if field == 'action' else value)
+    changes = payload.model_dump(exclude_unset=True)
+    for field, value in changes.items(): setattr(item, field, value.strip() if field == 'action' else value)
+    log_action(db, 'remediation_updated', user_id=user.id, entity_type='remediation_action', entity_id=str(item.id), changes={key: '[changed]' for key in changes})
     db.commit(); db.refresh(item); return item
 @router.post('/audit-sessions/{audit_session_id}/evidence')
 async def upload_evidence(audit_session_id: int, file: UploadFile, db: Session = Depends(get_db), user=Depends(current_user), screen_user=Depends(require_screen('evidence_scan', 'write'))):

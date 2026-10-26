@@ -2,7 +2,8 @@ from fastapi import Cookie, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.db.models import User
-from app.core.screen_registry import has_screen_permission
+from app.core.authorization import authorize_workspace_access
+from app.core.audit_log import log_action
 from app.services.auth.service import get_session_user
 
 def current_user(cmmi_session: str | None = Cookie(default=None), db: Session = Depends(get_db)) -> User:
@@ -25,7 +26,11 @@ def require_screen(screen_id: str, action: str = 'read'):
     migration, so this adds screen protection without widening legacy access.
     """
     def dependency(db: Session = Depends(get_db), user: User = Depends(current_user)) -> User:
-        if not has_screen_permission(db, user, screen_id, action):
+        if not authorize_workspace_access(db, user, screen_id, action):
+            log_action(db, 'authorization_denied', user_id=user.id,
+                       entity_type='screen', entity_id=screen_id,
+                       detail=f'action={action}', outcome='denied')
+            db.commit()
             raise HTTPException(status.HTTP_403_FORBIDDEN, 'Screen permission denied')
         return user
     return dependency

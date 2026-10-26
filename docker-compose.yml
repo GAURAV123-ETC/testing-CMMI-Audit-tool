@@ -7,28 +7,48 @@ services:
     environment:
       DB_HOST: mysql
       DB_PORT: 3306
-      DB_NAME: ${DB_NAME:-cmmi_audit}
-      DB_USER: cmmi
-      DB_PASSWORD: ${DB_PASSWORD:-change-me}
+      DB_NAME: ${DB_NAME:?Set DB_NAME in .env}
+      DB_USER: ${DB_USER:?Set DB_USER in .env}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
       APP_PORT: 8090
-      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8090}
-    ports: ["8090:8090"]
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?Set PUBLIC_BASE_URL in .env}
+      UPLOAD_DIR: /data/uploads
+      OUTPUT_DIR: /data/reports
+      TEMPLATE_DIR: /data/templates
+    # Bind locally; publish HTTPS through a separately managed reverse proxy.
+    ports: ["127.0.0.1:8090:8090"]
     depends_on: { mysql: { condition: service_healthy } }
     volumes: [uploads:/data/uploads, reports:/data/reports, templates:/data/templates]
     networks: [default, internal]
     restart: unless-stopped
-    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8090/api/docs')"], interval: 30s, timeout: 5s, retries: 5 }
+    healthcheck: { test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8090/healthz')"], interval: 30s, timeout: 5s, retries: 5 }
+  migrate:
+    build: .
+    profiles: ["migrate"]
+    env_file:
+      - path: .env
+        required: true
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:?Set DB_NAME in .env}
+      DB_USER: ${MIGRATION_DB_USER:?Set MIGRATION_DB_USER in .env}
+      DB_PASSWORD: ${MIGRATION_DB_PASSWORD:?Set MIGRATION_DB_PASSWORD in .env}
+    command: ["python", "-m", "app.db.migrate"]
+    depends_on: { mysql: { condition: service_healthy } }
+    networks: [internal]
+    restart: "no"
   mysql:
     image: mysql:8.4
     environment:
-      MYSQL_DATABASE: ${DB_NAME:-cmmi_audit}
-      MYSQL_USER: cmmi
-      MYSQL_PASSWORD: ${DB_PASSWORD:-change-me}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change-root-password}
+      MYSQL_DATABASE: ${DB_NAME:?Set DB_NAME in .env}
+      MYSQL_USER: ${DB_USER:?Set DB_USER in .env}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
     volumes: [mysql_data:/var/lib/mysql]
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD:-change-root-password}"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p\"$$MYSQL_ROOT_PASSWORD\""]
       interval: 10s
       timeout: 5s
       retries: 10

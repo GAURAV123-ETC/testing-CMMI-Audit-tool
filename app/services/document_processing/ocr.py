@@ -4,7 +4,8 @@ from io import BytesIO
 def _ocr(image) -> str:
     try:
         import pytesseract
-        return pytesseract.image_to_string(image)
+        from app.core.config import get_settings
+        return pytesseract.image_to_string(image, timeout=get_settings().ocr_timeout_seconds)
     except ImportError:
         return '[OCR unavailable: install the Tesseract system package]'
     except Exception as exc:

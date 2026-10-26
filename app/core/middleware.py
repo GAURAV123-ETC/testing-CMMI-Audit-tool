@@ -1,5 +1,5 @@
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import RedirectResponse
+from starlette.responses import JSONResponse, RedirectResponse
 
 from app.core.config import get_settings
 
@@ -8,7 +8,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
         response.headers['X-Content-Type-Options'] = 'nosniff'
         response.headers['X-Frame-Options'] = 'DENY'
-        response.headers['Referrer-Policy'] = 'same-origin'
+        response.headers['Referrer-Policy'] = 'no-referrer'
         response.headers['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=()'
         # NiceGUI loads its client through module scripts and a WebSocket.  Do
         # not enforce a restrictive CSP during local development: browsers can
@@ -23,7 +23,24 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
                 f"frame-src 'self'{turnstile_origin}; "
                 f"connect-src 'self' wss:{turnstile_origin}"
             )
+            response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
         return response
+
+
+class OriginValidationMiddleware(BaseHTTPMiddleware):
+    """Require a trusted Origin for cookie-authenticated API mutations."""
+    _safe_paths = {'/api/v1/auth/login', '/api/v1/auth/first-administrator',
+                   '/api/v1/auth/password-reset', '/api/v1/auth/password-reset/confirm'}
+
+    async def dispatch(self, request, call_next):
+        if (request.method in {'POST', 'PUT', 'PATCH', 'DELETE'}
+                and request.url.path.startswith('/api/')
+                and request.url.path not in self._safe_paths
+                and request.cookies.get('cmmi_session')):
+            origin = request.headers.get('origin')
+            if not origin or origin.rstrip('/') not in get_settings().trusted_origins():
+                return JSONResponse({'detail': 'Untrusted request origin'}, status_code=403)
+        return await call_next(request)
 
 class GuiAuthenticationMiddleware(BaseHTTPMiddleware):
     """Protect NiceGUI pages while leaving API authentication to FastAPI dependencies."""
@@ -36,7 +53,7 @@ class GuiAuthenticationMiddleware(BaseHTTPMiddleware):
             # NiceGUI mounts its Socket.IO service here. It must remain
             # reachable before login so the public login page can hydrate.
             or path.startswith('/_nicegui_ws/')
-            or path in {'/favicon.ico'}
+            or path in {'/favicon.ico', '/healthz'}
         )
         if not public:
             from app.db.database import SessionLocal

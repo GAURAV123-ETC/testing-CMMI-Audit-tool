@@ -30,5 +30,12 @@ def generate_afr(audit_session_id: int, format: str, filters: AfrFilterIn | None
 @router.get('/{report_id}/download')
 def download(report_id: int, db: Session = Depends(get_db), user=Depends(current_user), screen_user=Depends(require_screen('reports'))):
     report = db.get(GeneratedReport, report_id)
-    if not report or not Path(report.storage_path).is_file(): raise HTTPException(404, 'Report not found')
-    return FileResponse(report.storage_path, filename=Path(report.storage_path).name)
+    if not report: raise HTTPException(404, 'Report not found')
+    root = get_settings().output_dir.resolve()
+    path = Path(report.storage_path).resolve()
+    try:
+        path.relative_to(root)
+    except ValueError as exc:
+        raise HTTPException(404, 'Report not found') from exc
+    if not path.is_file(): raise HTTPException(404, 'Report not found')
+    return FileResponse(path, filename=path.name)

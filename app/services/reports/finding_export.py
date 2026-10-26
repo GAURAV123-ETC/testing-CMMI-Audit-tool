@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
+from app.core.audit_log import log_action
 from app.db.models import (AuditProject, AuditSession, DocumentTypeRule, EvidenceFile,
                            EvidenceSource, Finding, FindingEvidence, GeneratedReport)
 from app.services.finding_scope import afr_findings_query, evidence_findings_query
@@ -384,6 +385,8 @@ def create_current_findings_export(db: Session, audit_session_id: int, user_id: 
     report = GeneratedReport(audit_session_id=audit_session_id, report_type=f'evidence_findings_{fmt}',
                              storage_path=str(output), created_by_id=user_id)
     db.add(report)
+    db.flush()
+    log_action(db, 'findings_export_generated', user_id=user_id, entity_type='report', entity_id=str(report.id), detail=report.report_type)
     db.commit()
     db.refresh(report)
     return report

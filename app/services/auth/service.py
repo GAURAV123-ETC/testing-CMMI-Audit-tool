@@ -89,18 +89,28 @@ def revoke_session(db: Session, token: str | None) -> None:
         if record: record.revoked_at = datetime.now(timezone.utc); db.commit()
 
 def request_reset(db: Session, email: str) -> str | None:
-    user = db.scalar(select(User).where(User.email == email.lower()))
+    # Serialize per-account requests so concurrent requests cannot leave two
+    # usable reset links.
+    user = db.scalar(select(User).where(User.email == email.lower()).with_for_update())
     if not user: return None
+    now = datetime.now(timezone.utc)
+    db.execute(update(PasswordReset).where(
+        PasswordReset.user_id == user.id, PasswordReset.consumed_at.is_(None),
+    ).values(consumed_at=now))
     token = random_token()
     db.add(PasswordReset(token_hash=token_digest(token), user_id=user.id, expires_at=expiry(minutes=60)))
     db.commit()
     return token
 
 def reset_password(db: Session, token: str, password: str) -> bool:
-    reset = db.scalar(select(PasswordReset).where(PasswordReset.token_hash == token_digest(token), PasswordReset.consumed_at.is_(None)))
+    reset = db.scalar(select(PasswordReset).where(
+        PasswordReset.token_hash == token_digest(token), PasswordReset.consumed_at.is_(None),
+    ).with_for_update())
     if not reset or _as_utc(reset.expires_at) <= datetime.now(timezone.utc): return False
     user = db.get(User, reset.user_id); user.password_hash = hash_password(password); reset.consumed_at = datetime.now(timezone.utc)
-    db.execute(update(UserSession).where(UserSession.user_id == user.id).values(revoked_at=datetime.now(timezone.utc))); db.commit(); return True
+    db.execute(update(UserSession).where(UserSession.user_id == user.id).values(revoked_at=datetime.now(timezone.utc)))
+    log_action(db, 'password_reset_completed', user_id=user.id, entity_type='user', entity_id=str(user.id))
+    db.commit(); return True
 
 
 def change_password(db: Session, user: User, current_password: str, new_password: str) -> None:

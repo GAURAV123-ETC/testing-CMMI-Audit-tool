@@ -294,7 +294,10 @@ def extract_text(path: str) -> str:
         if suffix == '.doc':
             return _extract_legacy_doc(file)
         if suffix == '.pdf':
-            pages = PdfReader(str(file)).pages
+            reader = PdfReader(str(file))
+            pages = reader.pages
+            if len(pages) > get_settings().max_document_pages:
+                return '[Extraction error: PDF exceeds the configured page limit]'
             text = '\n'.join(page.extract_text() or '' for page in pages)
             # The legacy implementation OCRed PDFs whose text layer was too
             # sparse to be useful. Keep that behavior server-side.
