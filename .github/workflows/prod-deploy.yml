@@ -1,0 +1,50 @@
+name: Manual Deploy to Production
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: cmmi-production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy-prod:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Production via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: 22
+          script: |
+            set -e
+
+            echo "Starting CMMI production deployment..."
+
+            # The server-side clone and its production .env file must
+            # already exist at this path. .env is never stored in Git.
+            cd /opt/app/prod/cmmi-audit
+            git pull origin main
+
+            # Apply migrations with the dedicated migration account before
+            # starting the new application container.
+            docker compose --profile migrate run --rm --build migrate
+            docker compose up -d --build app
+
+            health_ok=0
+            for attempt in $(seq 1 30); do
+              if docker compose exec -T app python -c "from urllib.request import urlopen; assert urlopen('http://127.0.0.1:8090/healthz', timeout=2).status == 200"; then
+                health_ok=1
+                break
+              fi
+              sleep 1
+            done
+
+            if [ "$health_ok" -ne 1 ]; then
+              docker compose logs --tail=100 app
+              exit 1
+            fi
+
+            echo "CMMI production deployment successful!"
